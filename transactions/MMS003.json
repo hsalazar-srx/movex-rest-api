@@ -1,0 +1,69 @@
+{
+  "program": "MMS003",
+  "library": "MVXCOBJ",
+  "description": "Item Cost Management",
+  "transactions": [
+    {
+      "name": "Get",
+      "description": "Get Item Cost Information",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Facility"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "description": "Facility"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "description": "Item Number"
+        },
+        {
+          "name": "UCOS",
+          "position": 4,
+          "length": 17,
+          "type": "decimal",
+          "description": "Unit Cost Price"
+        }
+      ]
+    }
+  ]
+}

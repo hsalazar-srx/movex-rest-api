@@ -1,0 +1,187 @@
+{
+  "program": "MMS200MI",
+  "library": "MVXCOBJ",
+  "description": "Item Master Management",
+  "transactions": [
+    {
+      "name": "GetItmBasic",
+      "description": "Get Item Basic Information",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "ITNO",
+          "position": 2,
+          "length": 40,
+          "type": "text",
+          "required": true,
+          "description": "Item Number"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "description": "Company Number"
+        },
+        {
+          "name": "ITNO",
+          "position": 2,
+          "length": 40,
+          "type": "text",
+          "description": "Item Number"
+        },
+        {
+          "name": "ITDS",
+          "position": 3,
+          "length": 30,
+          "type": "text",
+          "description": "Item Description"
+        },
+        {
+          "name": "STAT",
+          "position": 4,
+          "length": 2,
+          "type": "integer",
+          "startIndex": 16,
+          "description": "Item Status (absolute position)"
+        },
+        {
+          "name": "ITTY",
+          "position": 5,
+          "length": 3,
+          "type": "text",
+          "startIndex": 268,
+          "description": "Item Type (absolute position)"
+        }
+      ]
+    },
+    {
+      "name": "LstItmFac",
+      "description": "List Item Facilities",
+      "httpMethod": "GET",
+      "returnsList": true,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Facility (optional filter)"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": false,
+          "description": "Item Number (optional filter)"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "description": "Facility"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "description": "Item Number"
+        }
+      ]
+    },
+    {
+      "name": "GetItmWhsBal",
+      "description": "Get Item Warehouse Balance",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "WHLO",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Warehouse"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "description": "Company Number"
+        },
+        {
+          "name": "WHLO",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "description": "Warehouse"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "description": "Item Number"
+        },
+        {
+          "name": "STQT",
+          "position": 4,
+          "length": 15,
+          "type": "decimal",
+          "description": "On-hand balance approved"
+        }
+      ]
+    }
+  ]
+}

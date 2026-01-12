@@ -1,0 +1,258 @@
+# ============================================
+# Movex.API - Production-Ready .gitignore
+# ============================================
+# Excludes development artifacts, secrets, logs,
+# non-production documentation, and build outputs
+
+# ============================================
+# .NET Core Build Outputs
+# ============================================
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+
+# ============================================
+# User Secrets & Environment Variables
+# ============================================
+# Never commit secrets to source control
+appsettings.Development.json
+appsettings.Production.json
+appsettings.*.json
+!appsettings.json
+.env
+.env.local
+.env.production
+*.secrets.json
+usersecrets.json
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+
+# ============================================
+# Logs & Runtime Files
+# ============================================
+logs/
+*.log
+*.log.*
+*.txt
+!README.txt
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IIS Runtime
+web.config
+*.pubxml
+*.pubxml.user
+
+# ============================================
+# IDE & Editor Files
+# ============================================
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+.idea/
+
+# Visual Studio Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.template
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# ============================================
+# Testing & Coverage
+# ============================================
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+*.cobertura.xml
+
+# ============================================
+# Postman Collections (may contain API keys)
+# ============================================
+postman-collections/
+*.postman_collection.json
+*.postman_environment.json
+
+# ============================================
+# Non-Production Documentation
+# ============================================
+# Exclude analysis, meeting notes, and internal docs
+analysis/
+docs/taskmaster/
+docs/meetings/
+*.draft.md
+*.wip.md
+NOTES.md
+TODO.md
+CHANGELOG.draft.md
+
+# ============================================
+# Database & Data Files
+# ============================================
+*.mdf
+*.ldf
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+
+# ============================================
+# OS-Specific Files
+# ============================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.#*
+\#*#
+
+# ============================================
+# Backup Files
+# ============================================
+*.bak
+*.backup
+*.old
+*.orig
+
+# ============================================
+# Compiled Source
+# ============================================
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# ============================================
+# Package Manager Lock Files
+# ============================================
+# Include these for reproducible builds
+# Uncomment if you want to exclude them:
+# package-lock.json
+# yarn.lock
+# packages.lock.json
+
+# ============================================
+# Custom Project Exclusions
+# ============================================
+# Deployment-specific files (keep templates, exclude instances)
+*.Production.json
+*.Staging.json
+*.local.json
+
+# Connection pool stats (runtime data)
+*.stats.json
+
+# Transaction cache (runtime)
+transactions/.cache/
+
+# M3 protocol test outputs
+*.m3response
+*.m3request
+
+# ============================================
+# INCLUDE (Production-Critical Files)
+# ============================================
+# These files MUST be committed:
+# - README.md (project overview)
+# - appsettings.json (template with placeholders)
+# - transactions/*.json (transaction configs, except schema.json backup)
+# - docs/DEPLOYMENT_*.md (deployment guides)
+# - docs/RUNBOOK.md (operational procedures)
+# - docs/TROUBLESHOOTING_RUNBOOK.md (incident response)
+# - docs/diagrams/ (architecture documentation)
+# - scripts/deploy-to-iis.ps1 (deployment automation)
+# - scripts/pre-deployment-check.ps1 (validation)
+# - .github/ (CI/CD workflows, if any)
+
+# ============================================
+# Force Include Critical Files
+# ============================================
+!appsettings.json
+!transactions/*.json
+!transactions/schema.json
+!scripts/deploy-to-iis.ps1
+!scripts/pre-deployment-check.ps1
+!docs/DEPLOYMENT_CHECKLIST.md
+!docs/DEPLOYMENT_READY.md
+!docs/IIS_DEPLOYMENT_SRXWEBAPP1.md
+!docs/RUNBOOK.md
+!docs/TROUBLESHOOTING_RUNBOOK.md
+!docs/LOGGING_SETUP.md
+!docs/diagrams/
+!README.md

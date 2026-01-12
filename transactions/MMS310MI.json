@@ -1,0 +1,65 @@
+{
+  "program": "MMS310MI",
+  "library": "MVXCOBJ",
+  "description": "Stock Adjustment",
+  "transactions": [
+    {
+      "name": "Update",
+      "description": "Adjust stock quantity at location",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number (server-enforced to 300)"
+        },
+        {
+          "name": "WHLO",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Warehouse"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number"
+        },
+        {
+          "name": "WHSL",
+          "position": 4,
+          "length": 10,
+          "type": "text",
+          "required": true,
+          "description": "Location"
+        },
+        {
+          "name": "STQI",
+          "position": 5,
+          "length": 15,
+          "type": "numeric",
+          "required": true,
+          "description": "Physical Inventory Quantity"
+        },
+        {
+          "name": "BREM",
+          "position": 6,
+          "startIndex": 162,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Remark / reason (MI absolute position 162-171)"
+        }
+      ],
+      "responseFields": []
+    }
+  ]
+}

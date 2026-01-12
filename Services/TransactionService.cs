@@ -1,0 +1,186 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Movex.API.Core.Interfaces;
+using Movex.API.Core.Models;
+using Polly;
+
+namespace Movex.API.Services
+{
+    /// <summary>
+    /// Service for executing M3 transactions (config-driven only)
+    /// </summary>
+    public class TransactionService : ITransactionService
+    {
+        private readonly MvxConnectionPool _connectionPool;
+        private readonly ITransactionConfigurationService _configService;
+        private readonly ITransactionStringBuilder _stringBuilder;
+        private readonly IResponseParser _responseParser;
+        private readonly ILogger<TransactionService> _logger;
+        private readonly IAsyncPolicy _resiliencePolicy;
+        private readonly string _host;
+        private readonly int _port;
+        private readonly string _username;
+        private readonly string _password;
+
+        public TransactionService(
+            MvxConnectionPool connectionPool,
+            ITransactionConfigurationService configService,
+            ITransactionStringBuilder stringBuilder,
+            IResponseParser responseParser,
+            ILogger<TransactionService> logger,
+            IAsyncPolicy resiliencePolicy,
+            string host,
+            int port,
+            string username,
+            string password)
+        {
+            _connectionPool = connectionPool ?? throw new ArgumentNullException(nameof(connectionPool));
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+            _stringBuilder = stringBuilder ?? throw new ArgumentNullException(nameof(stringBuilder));
+            _responseParser = responseParser ?? throw new ArgumentNullException(nameof(responseParser));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _resiliencePolicy = resiliencePolicy ?? throw new ArgumentNullException(nameof(resiliencePolicy));
+            _host = host ?? throw new ArgumentNullException(nameof(host));
+            _port = port;
+            _username = username ?? throw new ArgumentNullException(nameof(username));
+            _password = password ?? throw new ArgumentNullException(nameof(password));
+        }
+
+        /// <summary>
+        /// Execute an M3 transaction asynchronously
+        /// </summary>
+        public async Task<object> ExecuteTransactionAsync(
+            string program,
+            string transaction,
+            Dictionary<string, string> fieldValues,
+            string? overrideUsername = null,
+            string? overridePassword = null)
+        {
+            if (string.IsNullOrWhiteSpace(program))
+            {
+                throw new ArgumentException("Program name cannot be empty", nameof(program));
+            }
+
+            if (string.IsNullOrWhiteSpace(transaction))
+            {
+                throw new ArgumentException("Transaction name cannot be empty", nameof(transaction));
+            }
+
+            if (fieldValues == null)
+            {
+                throw new ArgumentNullException(nameof(fieldValues));
+            }
+
+            // Get transaction definition from configuration
+            TransactionDefinition? txDef = _configService.GetTransaction(program, transaction);
+
+            if (txDef == null)
+            {
+                _logger.LogError("Transaction '{Program}/{Transaction}' not found in configuration", program, transaction);
+                throw new ArgumentException($"Transaction '{program}/{transaction}' not found in configuration");
+            }
+
+            _logger.LogInformation("Executing transaction '{Program}/{Transaction}'", program, transaction);
+
+            // Build transaction string
+            string transactionString = _stringBuilder.BuildTransactionString(txDef, fieldValues);
+            
+            _logger.LogDebug("Transaction string built (length={Length})", transactionString.Length);
+
+            PooledConnection? pooled = null;
+            try
+            {
+                // Acquire connection from pool
+                pooled = await _connectionPool.AcquireConnectionAsync();
+                
+                // Use override credentials if provided
+                var user = string.IsNullOrEmpty(overrideUsername) ? _username : overrideUsername;
+                var pass = string.IsNullOrEmpty(overridePassword) ? _password : overridePassword;
+                
+                // Determine API program (use override from fieldValues or build from config)
+                string apiProgram = BuildApiProgram(program, fieldValues);
+                
+                _logger.LogDebug("Sending request to {Host}:{Port} with API program {ApiProgram}", _host, _port, apiProgram);
+
+                // Execute transaction with resilience policy (retry + circuit breaker)
+                string rawResponse = await _resiliencePolicy.ExecuteAsync(
+                    async context =>
+                    {
+                        return await pooled.Connection.SendReceiveAsync(
+                            _host,
+                            _port,
+                            user,
+                            pass,
+                            transactionString,
+                            apiProgram);
+                    },
+                    new Polly.Context { { "logger", _logger } });
+
+                
+                // Parse response if response fields are configured
+                if (txDef.ResponseFields?.Any() == true)
+                {
+                    if (txDef.ReturnsList)
+                    {
+                        var parsedList = _responseParser.ParseResponseList(rawResponse, txDef.ResponseFields);
+                        _logger.LogInformation("Transaction completed successfully, parsed list with {RecordCount} records", parsedList.Count);
+                        return parsedList;
+                    }
+                    else
+                    {
+                        var parsedResponse = _responseParser.ParseResponse(rawResponse, txDef.ResponseFields);
+                        _logger.LogInformation("Transaction completed successfully, parsed {FieldCount} response fields", parsedResponse.Count);
+                        return parsedResponse;
+                    }
+                }
+
+                _logger.LogInformation("Transaction completed successfully, response length: {Length}", rawResponse?.Length ?? 0);
+                return rawResponse ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                // Mark connection as unhealthy on error
+                if (pooled != null)
+                {
+                    pooled.IsHealthy = false;
+                }
+                
+                _logger.LogError(ex, "Transaction '{Program}/{Transaction}' failed: {Message}", program, transaction, ex.Message);
+                throw new Exception($"M3 transaction error: {ex.Message}", ex);
+            }
+            finally
+            {
+                // Always return connection to pool
+                pooled?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Build API program string (LIBRARY/PROGRAM format)
+        /// </summary>
+        private string BuildApiProgram(string program, Dictionary<string, string> fieldValues)
+        {
+            // Check if APIPROGRAM is provided in field values
+            if (fieldValues.TryGetValue("APIPROGRAM", out var apiProgram) && 
+                !string.IsNullOrWhiteSpace(apiProgram))
+            {
+                return apiProgram;
+            }
+
+            // Default format: MVXCOBJ/PROGRAM
+            return $"MVXCOBJ/{program}";
+        }
+
+        /// <summary>
+        /// Get connection pool statistics
+        /// </summary>
+        public ConnectionPoolStats GetPoolStats()
+        {
+            // _connectionPool is required via DI and cannot be null
+            return _connectionPool.GetStats();
+        }
+    }
+}
