@@ -60,7 +60,7 @@ Updated [appsettings.json](appsettings.json):
 
 ### Development
 ```bash
-cd C:\Projects\MOVEX\API-Integration\dotnet-poc
+cd C:\Projects\MOVEX\API-Integration\movex-rest-api
 dotnet run
 
 # Output to console in real-time:

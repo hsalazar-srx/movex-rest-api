@@ -19,7 +19,7 @@
 
 ### 1.2 Generate Release Build
 ```powershell
-cd C:\Projects\MOVEX\API-Integration\dotnet-poc
+cd C:\Projects\MOVEX\API-Integration\movex-rest-api
 
 # Clean previous builds
 dotnet clean -c Release
@@ -37,7 +37,7 @@ dotnet publish -c Release -o "C:\temp\movex-api-release"
 
 ### 1.3 Generate API Key
 ```powershell
-cd C:\Projects\MOVEX\API-Integration\dotnet-poc
+cd C:\Projects\MOVEX\API-Integration\movex-rest-api
 .\scripts\generate-api-key-simple.ps1
 ```
 - [ ] API key generated successfully

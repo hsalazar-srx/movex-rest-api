@@ -100,7 +100,7 @@ icacls "C:\inetpub\wwwroot\movex-api\logs" /grant "IIS AppPool\DefaultAppPool:(O
 On your **local development machine** (where code is checked out):
 
 ```powershell
-cd C:\Projects\MOVEX\API-Integration\dotnet-poc
+cd C:\Projects\MOVEX\API-Integration\movex-rest-api
 
 # Clean previous builds
 dotnet clean -c Release
@@ -150,7 +150,7 @@ copy-item "C:\temp\movex-api-release\*" "\\SRXWEBAPP1\c$\inetpub\wwwroot\movex-a
 # On SRXWEBAPP1
 cd C:\inetpub\wwwroot\movex-api
 git clone https://github.com/your-org/API-Integration.git
-cd dotnet-poc
+cd movex-rest-api
 dotnet publish -c Release -o "C:\inetpub\wwwroot\movex-api"
 ```
 

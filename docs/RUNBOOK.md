@@ -20,7 +20,7 @@
 
 ## 3) Build & package (development machine)
 ```powershell
-cd C:\Projects\MOVEX\API-Integration\dotnet-poc
+cd C:\Projects\MOVEX\API-Integration\movex-rest-api
 
 # Clean and publish
 dotnet clean -c Release

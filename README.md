@@ -65,7 +65,7 @@ For day-to-day operations, see the runbook: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 1. **Configure M3 connection:**
 ```bash
-cd C:\Projects\MOVEX\API-Integration\dotnet-poc
+cd C:\Projects\MOVEX\API-Integration\movex-rest-api
 dotnet user-secrets set "M3_HOST" "150.3.2.100"
 dotnet user-secrets set "M3_PORT" "6000"
 dotnet user-secrets set "M3_USER" "<your-user>"
@@ -93,7 +93,7 @@ Generate and store a strong API key in User Secrets:
 
 ```bash
 # Quick: generates a 256-bit Base64 key and stores it under ApiKeys:Primary
-cd c:/Projects/MOVEX/API-Integration/dotnet-poc
+cd c:/Projects/MOVEX/API-Integration/movex-rest-api
 .\scripts\generate-api-key-simple.ps1
 
 # Advanced: Base64 or Hex, configurable length
@@ -681,7 +681,7 @@ No code changes required!
 ## Project Structure
 
 ```
-dotnet-poc/
+movex-rest-api/
 ├── Core/
 │   ├── Constants/ValidationPatterns.cs
 │   ├── Interfaces/ (6 interfaces)
@@ -784,7 +784,7 @@ Response shape for list transactions:
 
 ### Log Files Location
 - **Linux/Mac**: `./logs/` (relative to app working directory)
-- **Windows**: `C:\Projects\MOVEX\API-Integration\dotnet-poc\logs\` (or wherever you run `dotnet run`)
+- **Windows**: `C:\Projects\MOVEX\API-Integration\movex-rest-api\logs\` (or wherever you run `dotnet run`)
 - **Docker**: Mount volume at `/app/logs` to persist logs outside container
 
 ### Common Issues & Solutions
