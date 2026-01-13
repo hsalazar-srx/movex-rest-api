@@ -16,17 +16,20 @@ namespace Movex.API.Controllers
         private readonly ITransactionConfigurationService _configService;
         private readonly IItemValidationService _validationService;
         private readonly ILogger<TransactionController> _logger;
+        private readonly IConfiguration _configuration;
 
         public TransactionController(
             ITransactionService service,
             ITransactionConfigurationService configService,
             IItemValidationService validationService,
-            ILogger<TransactionController> logger)
+            ILogger<TransactionController> logger,
+            IConfiguration configuration)
         {
             _service = service;
             _configService = configService;
             _validationService = validationService;
             _logger = logger;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -37,11 +40,16 @@ namespace Movex.API.Controllers
         {
             try
             {
+                var company = _configuration["M3:DEFAULT_COMPANY"] ?? "300";
+                
                 // Extract inputs
             string? itno = request.ContainsKey("ITNO") ? request["ITNO"]?.ToString() : null;
             string? whlo = request.ContainsKey("WHLO") ? request["WHLO"]?.ToString() : null;
             string? whsl = request.ContainsKey("WHSL") ? request["WHSL"]?.ToString() : null;
             string? stqi = request.ContainsKey("STQI") ? request["STQI"]?.ToString() : null;
+            string? stdi = request.ContainsKey("STDI") && !string.IsNullOrWhiteSpace(request["STDI"]?.ToString())
+                ? request["STDI"]?.ToString()
+                : DateTime.Now.ToString("yyyyMMdd"); // Default to current date
             string? brem = request.ContainsKey("BREM") ? request["BREM"]?.ToString() : "";
 
                 if (string.IsNullOrWhiteSpace(itno) || string.IsNullOrWhiteSpace(whlo) || string.IsNullOrWhiteSpace(whsl) || string.IsNullOrWhiteSpace(stqi))
@@ -55,7 +63,7 @@ namespace Movex.API.Controllers
                 }
 
                 // 1) Validate item status/type via ItemValidationService
-                var validation = await _validationService.ValidateItemAsync("300", itno);
+                var validation = await _validationService.ValidateItemAsync(company, itno);
                 if (!validation.IsValid)
                 {
                     return StatusCode(422, new
@@ -68,14 +76,36 @@ namespace Movex.API.Controllers
                     });
                 }
 
-                // 2) Adjust stock via MMS310MI.Update (server-enforced company 300)
+                // 2) Get item unit of measure (UNMS) from MMS200MI.GetItmBasic
+                var itemBasicFields = new Dictionary<string, string>
+                {
+                    { "CONO", company },
+                    { "ITNO", itno ?? string.Empty }
+                };
+                
+                var itemBasicResponse = await _service.ExecuteTransactionAsync("MMS200MI", "GetItmBasic", itemBasicFields) as Dictionary<string, object>;
+                string qlun = "EA"; // Default fallback
+                
+                if (itemBasicResponse != null && itemBasicResponse.TryGetValue("UNMS", out var unmsObj))
+                {
+                    qlun = unmsObj?.ToString()?.Trim() ?? "EA";
+                    _logger.LogInformation("[AdjustStockWithValidation] Retrieved UNMS={UNMS} for item {ITNO}", qlun, itno);
+                }
+                else
+                {
+                    _logger.LogWarning("[AdjustStockWithValidation] Could not retrieve UNMS for item {ITNO}, using default EA", itno);
+                }
+
+                // 3) Adjust stock via MMS310MI.Update (using configured company)
                 var updateFields = new Dictionary<string, string>
                 {
-                    { "CONO", "300" },
+                    { "CONO", company },
                     { "WHLO", whlo ?? string.Empty },
                     { "ITNO", itno ?? string.Empty },
                     { "WHSL", whsl ?? string.Empty },
                     { "STQI", stqi ?? string.Empty },
+                    { "QLUN", qlun },
+                    { "STDI", stdi },
                     { "BREM", brem ?? string.Empty }
                 };
 
@@ -109,6 +139,8 @@ namespace Movex.API.Controllers
         {
             try
             {
+                var company = _configuration["M3:DEFAULT_COMPANY"] ?? "300";
+                
                 // Extract inputs
                 string? itno = request.ContainsKey("ITNO") ? request["ITNO"]?.ToString() : null;
                 string? whlo = request.ContainsKey("WHLO") ? request["WHLO"]?.ToString() : null;
@@ -121,20 +153,40 @@ namespace Movex.API.Controllers
                     return BadRequest(new { success = false, error = "Required fields: ITNO, WHLO, WHSL, STQI" });
                 }
 
-                _logger.LogInformation("[StockManagement] Processing: ITNO={ITNO}, WHLO={WHLO}, WHSL={WHSL}, STQI={STQI}", itno, whlo, whsl, newQty);
+                _logger.LogInformation("[StockManagement] Processing: ITNO={ITNO}, WHLO={WHLO}, WHSL={WHSL}, STQI={STQI}, Company={CONO}", itno, whlo, whsl, newQty, company);
 
                 // Step 1: Validate item (STAT 20/50, ITTY 030)
-                var validation = await _validationService.ValidateItemAsync("300", itno);
+                var validation = await _validationService.ValidateItemAsync(company, itno);
                 if (!validation.IsValid)
                 {
                     _logger.LogWarning("[StockManagement] Validation failed: {ErrorCode} - {ErrorMessage}", validation.ErrorCode, validation.ErrorMessage);
                     return StatusCode(422, new { success = false, errorCode = validation.ErrorCode, error = validation.ErrorMessage });
                 }
 
+                // Step 1b: Get item unit of measure (UNMS) from MMS200MI.GetItmBasic
+                var itemBasicFields = new Dictionary<string, string>
+                {
+                    { "CONO", company },
+                    { "ITNO", itno ?? string.Empty }
+                };
+                
+                var itemBasicResponse = await _service.ExecuteTransactionAsync("MMS200MI", "GetItmBasic", itemBasicFields) as Dictionary<string, object>;
+                string qlun = "EA"; // Default fallback
+                
+                if (itemBasicResponse != null && itemBasicResponse.TryGetValue("UNMS", out var unmsObj))
+                {
+                    qlun = unmsObj?.ToString()?.Trim() ?? "EA";
+                    _logger.LogInformation("[StockManagement] Retrieved UNMS={UNMS} for item {ITNO}", qlun, itno);
+                }
+                else
+                {
+                    _logger.LogWarning("[StockManagement] Could not retrieve UNMS for item {ITNO}, using default EA", itno);
+                }
+
                 // Step 2: Check warehouse balance
                 var balanceFields = new Dictionary<string, string>
                 {
-                    { "CONO", "300" },
+                    { "CONO", company },
                     { "WHLO", whlo ?? string.Empty },
                     { "ITNO", itno ?? string.Empty }
                 };
@@ -162,14 +214,15 @@ namespace Movex.API.Controllers
                     });
                 }
 
-                // Step 3: Update stock via MMS310MI.Update
+                // Step 3: Update stock via MMS310MI.Update with UNMS as QLUN
                 var updateFields = new Dictionary<string, string>
                 {
-                    { "CONO", "300" },
+                    { "CONO", company },
                     { "WHLO", whlo ?? string.Empty },
                     { "ITNO", itno ?? string.Empty },
                     { "WHSL", whsl ?? string.Empty },
                     { "STQI", newQty ?? string.Empty },
+                    { "QLUN", qlun },
                     { "BREM", brem }
                 };
 
@@ -206,6 +259,8 @@ namespace Movex.API.Controllers
         {
             try
             {
+                var company = _configuration["M3:DEFAULT_COMPANY"] ?? "300";
+                
                 // Extract inputs
                 string? itno = request.ContainsKey("ITNO") ? request["ITNO"]?.ToString() : null;
                 string? faci = request.ContainsKey("FACI") ? request["FACI"]?.ToString() : null;
@@ -215,42 +270,44 @@ namespace Movex.API.Controllers
                     return BadRequest(new { success = false, error = "Required fields: ITNO, FACI" });
                 }
 
-                _logger.LogInformation("[GetStandardCost] Processing: ITNO={ITNO}, FACI={FACI}", itno, faci);
+                _logger.LogInformation("[GetStandardCost] Processing: ITNO={ITNO}, FACI={FACI}, Company={CONO}", itno, faci, company);
 
                 // Step 1: Validate item (STAT 20/50, ITTY 030)
-                var validation = await _validationService.ValidateItemAsync("300", itno);
+                var validation = await _validationService.ValidateItemAsync(company, itno);
                 if (!validation.IsValid)
                 {
                     _logger.LogWarning("[GetStandardCost] Validation failed: {ErrorCode} - {ErrorMessage}", validation.ErrorCode, validation.ErrorMessage);
                     return StatusCode(422, new { success = false, errorCode = validation.ErrorCode, error = validation.ErrorMessage });
                 }
 
-                // Step 2: Get unit cost via MMS003.Get
+                // Step 2: Get facility cost and details via MMS200MI.GetItmFac
                 var costFields = new Dictionary<string, string>
                 {
-                    { "CONO", "300" },
+                    { "CONO", company },
                     { "FACI", faci ?? string.Empty },
                     { "ITNO", itno ?? string.Empty }
                 };
 
-                var costResponse = await _service.ExecuteTransactionAsync("MMS003", "Get", costFields) as Dictionary<string, object>;
+                var costResponse = await _service.ExecuteTransactionAsync("MMS200MI", "GetItmFac", costFields) as Dictionary<string, object>;
                 if (costResponse == null)
                 {
-                    _logger.LogError("[GetStandardCost] MMS003.Get returned empty response - facility may not exist");
+                    _logger.LogError("[GetStandardCost] MMS200MI.GetItmFac returned empty response - facility may not exist");
                     return StatusCode(422, new { success = false, errorCode = "011", error = "Facility Does Not Exist" });
                 }
 
                 decimal unitCost = costResponse.TryGetValue("UCOS", out var ucosObj) ? Convert.ToDecimal(ucosObj) : 0;
+                string? facilityName = costResponse.TryGetValue("FACN", out var facnObj) ? facnObj?.ToString() : null;
+                string? itemDescription = costResponse.TryGetValue("ITDS", out var itdsObj) ? itdsObj?.ToString() : null;
 
-                _logger.LogInformation("[GetStandardCost] Retrieved unit cost {UnitCost} for item {ITNO}", unitCost, itno);
+                _logger.LogInformation("[GetStandardCost] Retrieved unit cost {UnitCost} for item {ITNO} at facility {FACI}", unitCost, itno, faci);
 
                 return Ok(new
                 {
                     success = true,
-                    program = "MMS003",
-                    transaction = "Get",
+                    program = "MMS200MI",
+                    transaction = "GetItmFac",
                     validation = new { stat = validation.Status, itty = validation.ItemType },
-                    data = new { unitCostPrice = unitCost, facility = faci, itemNumber = itno },
+                    data = new { unitCostPrice = unitCost, facility = faci, facilityName = facilityName, itemNumber = itno, itemDescription = itemDescription },
                     timestamp = DateTime.UtcNow
                 });
             }

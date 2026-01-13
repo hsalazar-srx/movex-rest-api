@@ -59,10 +59,11 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .Enrich.FromLogContext();
 });
 
-var m3Host = builder.Configuration["M3_HOST"] ?? "150.3.2.100";
-var m3Port = int.Parse(builder.Configuration["M3_PORT"] ?? "6000");
-var m3User = builder.Configuration["M3_USER"] ?? "your-username";
-var m3Password = builder.Configuration["M3_PASSWORD"] ?? "your-password";
+var m3Host = builder.Configuration["M3:HOST"] ?? throw new InvalidOperationException("M3:HOST is not configured");
+var m3Port = int.Parse(builder.Configuration["M3:PORT"] ?? "6300");
+var m3User = builder.Configuration["M3:USER"] ?? throw new InvalidOperationException("M3:USER is not configured");
+var m3Password = builder.Configuration["M3:PASSWORD"] ?? throw new InvalidOperationException("M3:PASSWORD is not configured");
+var defaultCompany = builder.Configuration["M3:DEFAULT_COMPANY"] ?? "300";
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 
 // Connection pool configuration
@@ -177,7 +178,7 @@ app.MapGet("/health", () => new
 });
 
 // Connection pool stats endpoint (requires API key)
-app.MapGet("/api/pool/stats", (ITransactionService service) => new
+app.MapGet("/api/transactions/pool-stats", (ITransactionService service) => new
 {
     success = true,
     stats = service.GetPoolStats(),

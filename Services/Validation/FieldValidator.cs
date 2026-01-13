@@ -68,6 +68,15 @@ namespace Movex.API.Services.Validation
                         $"Field '{field.Name}' contains invalid characters. Allowed: A-Z, a-z, 0-9, space, _, -, ., /, :");
                 }
             }
+            else if (field.Type == "date")
+            {
+                // Date format: YYYYMMDD (8 digits)
+                if (!ValidationPatterns.NumericRegex.IsMatch(value) || value.Length != 8)
+                {
+                    throw new ArgumentException(
+                        $"Field '{field.Name}' must be in YYYYMMDD format (8 numeric digits)");
+                }
+            }
 
             // Validate field length
             if (value.Length > field.Length)

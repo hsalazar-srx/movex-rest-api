@@ -61,15 +61,432 @@ For day-to-day operations, see the runbook: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 - Network access to the M3 MI server (host/port)
 - IIS 10.0+ with ASP.NET Core Hosting Bundle (for SRXWEBAPP1)
 
+## Development Environment Setup
+
+### 1. Clone and Install Dependencies
+
+```powershell
+# Clone or navigate to project
+cd C:\Projects\MOVEX\API-Integration\movex-rest-api
+
+# Restore NuGet packages
+dotnet restore
+
+# Verify installation
+dotnet --version  # Should show 8.0.x or later
+```
+
+### 2. Configure Development Secrets
+
+Use **User Secrets** to avoid committing credentials to source control:
+
+```powershell
+# Initialize user secrets (creates a unique ID for this project)
+dotnet user-secrets init
+
+# Set M3 connection details
+dotnet user-secrets set "M3:HOST" "150.3.2.100"
+dotnet user-secrets set "M3:PORT" "6300"
+dotnet user-secrets set "M3:USER" "MBUSER"
+dotnet user-secrets set "M3:PASSWORD" "your-password"
+dotnet user-secrets set "M3:DEFAULT_COMPANY" "300"
+
+# Generate and set API keys
+.\scripts\generate-api-key-simple.ps1  # Auto-generates and stores ApiKeys:Primary
+dotnet user-secrets set "ApiKeys:Admin" "admin-key-for-testing"
+
+# Verify secrets are stored
+dotnet user-secrets list
+```
+
+**Expected Output:**
+```
+ApiKeys:Primary = <generated-key>
+ApiKeys:Admin = admin-key-for-testing
+M3:HOST = 150.3.2.100
+M3:PORT = 6300
+M3:USER = MBUSER
+M3:PASSWORD = ********
+M3:DEFAULT_COMPANY = 300
+```
+
+### 3. Configure Transaction Definitions
+
+Transaction configurations are stored in `transactions/` directory. No changes needed for initial setup—**MMS200MI**, **MMS310MI**, and **MMS003** are pre-configured.
+
+To add new transactions, create/edit JSON files in `transactions/`:
+
+```json
+{
+  "program": "MMS200MI",
+  "library": "MVXCOBJ",
+  "description": "Item Master Management",
+  "transactions": [
+    {
+      "name": "GetItmBasic",
+      "description": "Get Item Basic Information",
+      "httpMethod": "POST",
+      "fields": [ /* input fields */ ],
+      "responseFields": [ /* output fields */ ]
+    }
+  ]
+}
+```
+
+Changes are **hot-reloaded** automatically—no restart required.
+
+### 4. Build the Project
+
+```powershell
+# Build and check for errors
+dotnet build
+
+# Expected output:
+# Build succeeded.
+#     0 Warning(s)
+#     0 Error(s)
+```
+
+### 5. Run the API
+
+```powershell
+# Start the development server
+dotnet run
+
+# Server starts at: http://localhost:5000
+# Swagger UI: http://localhost:5000/swagger (if enabled)
+```
+
+**Expected Console Output:**
+```
+[INFO] Movex.API starting up...
+[INFO] Configuration loaded from transactions/MMS200MI.json
+[INFO] Configuration loaded from transactions/MMS310MI.json
+[INFO] Connection pool initialized: MinSize=2, MaxSize=10
+[INFO] Now listening on: http://localhost:5000
+[INFO] Application started. Press Ctrl+C to shut down.
+```
+
+### 6. Test the API
+
+#### Option A: Using PowerShell (Quick Test)
+
+```powershell
+# Get your API key from secrets
+$apiKey = dotnet user-secrets list | Select-String "ApiKeys:Primary" | ForEach-Object { ($_ -split "=")[1].Trim() }
+
+# Test health endpoint (no auth required)
+Invoke-RestMethod -Uri "http://localhost:5000/health"
+
+# Test transaction endpoint
+$headers = @{ "X-API-Key" = $apiKey }
+$body = @{
+    CONO = "300"
+    ITNO = "DC210055"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:5000/api/MMS200MI/GetItmBasic" `
+    -Method Post `
+    -Headers $headers `
+    -Body $body `
+    -ContentType "application/json"
+```
+
+**Expected Response:**
+```json
+{
+  "CONO": "300",
+  "ITNO": "DC210055",
+  "ITDS": "Item Description",
+  "STAT": 20,
+  "ITTY": "030"
+}
+```
+
+#### Option B: Using Postman
+
+1. **Import Collection** (if available in `postman-collections/`)
+2. **Create Environment:**
+   - `baseUrl`: `http://localhost:5000`
+   - `apiKey`: `<your-key-from-user-secrets>`
+3. **Test Endpoints:**
+   - GET `/health` — No auth required
+   - POST `/api/MMS200MI/GetItmBasic` — With X-API-Key header
+   - POST `/api/workflows/StockManagement` — Stock adjustment workflow
+
+#### Option C: Using curl
+
+```bash
+# Health check
+curl http://localhost:5000/health
+
+# Transaction request (replace API_KEY)
+curl -X POST http://localhost:5000/api/MMS200MI/GetItmBasic \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"CONO":"300","ITNO":"DC210055"}'
+```
+
+### 7. Debugging in Visual Studio / VS Code
+
+#### Visual Studio:
+1. Open `Movex.API.csproj`
+2. Set breakpoints in controllers/services
+3. Press **F5** to start debugging
+4. API starts with debugger attached
+
+#### VS Code:
+1. Open project folder
+2. Install **C# Dev Kit** extension
+3. Press **F5** → Select ".NET Core Launch (web)"
+4. Set breakpoints and debug
+
+### 8. View Logs
+
+Logs are written to `logs/` directory:
+
+```powershell
+# View today's log file
+Get-Content logs/movex-api-$(Get-Date -Format yyyy-MM-dd).txt -Tail 50 -Wait
+
+# Search for errors
+Get-Content logs/*.txt | Select-String "ERROR"
+```
+
+### 9. Monitor Connection Pool
+
+Check pool statistics via dedicated endpoint:
+
+```powershell
+$apiKey = dotnet user-secrets list | Select-String "ApiKeys:Primary" | ForEach-Object { ($_ -split "=")[1].Trim() }
+
+Invoke-RestMethod -Uri "http://localhost:5000/api/transactions/pool-stats" `
+    -Headers @{ "X-API-Key" = $apiKey }
+```
+
+**Expected Response:**
+```json
+{
+  "totalConnections": 5,
+  "availableConnections": 3,
+  "inUseConnections": 2,
+  "minPoolSize": 2,
+  "maxPoolSize": 10
+}
+```
+
+### 10. Common Development Tasks
+
+#### Add a New Transaction
+
+1. Edit `transactions/MMS200MI.json` (or create new program JSON)
+2. Add transaction definition with fields and responseFields
+3. Save file → API auto-reloads configuration (no restart)
+4. Test new endpoint: `POST /api/{program}/{transaction}`
+
+#### Change Log Level
+
+```powershell
+# Edit appsettings.json temporarily
+# Or set via environment variable:
+$env:Logging__LogLevel__Default = "Debug"
+dotnet run
+```
+
+#### Rebuild After Code Changes
+
+```powershell
+# Stop server (Ctrl+C)
+dotnet build
+dotnet run
+```
+
+#### Clear User Secrets (Start Fresh)
+
+```powershell
+# Remove all secrets
+dotnet user-secrets clear
+
+# Re-add required secrets
+dotnet user-secrets set "M3:HOST" "150.3.2.100"
+dotnet user-secrets set "M3:PORT" "6300"
+# ... etc
+```
+
+#### Switch Between Development and Production Environments
+
+ASP.NET Core uses the `ASPNETCORE_ENVIRONMENT` variable to determine which configuration files to load and which features to enable.
+
+**Check Current Environment:**
+
+```powershell
+# View current environment setting
+$env:ASPNETCORE_ENVIRONMENT
+
+# If empty, defaults to "Production"
+```
+
+**Run in Development Mode (default for `dotnet run`):**
+
+```powershell
+# Method 1: Set environment variable temporarily (current session only)
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+dotnet run
+
+# Method 2: Set via command line (Linux/Mac)
+# ASPNETCORE_ENVIRONMENT=Development dotnet run
+```
+
+**Development mode enables:**
+- User Secrets loading (from `~/.microsoft/usersecrets/`)
+- Detailed error pages with stack traces
+- Hot reload for configuration changes
+- `appsettings.Development.json` overrides
+
+**Run in Production Mode:**
+
+```powershell
+# Method 1: Set environment variable
+$env:ASPNETCORE_ENVIRONMENT = "Production"
+dotnet run
+
+# Method 2: Unset the variable (defaults to Production)
+Remove-Item Env:\ASPNETCORE_ENVIRONMENT
+dotnet run
+
+# Method 3: Set permanently for current user (persists across sessions)
+[System.Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production", "User")
+```
+
+**Production mode enables:**
+- Environment variables for secrets (User Secrets NOT loaded)
+- Generic error messages (no stack traces)
+- `appsettings.Production.json` overrides
+- Performance optimizations
+
+**Test Production Configuration Locally:**
+
+```powershell
+# 1. Create appsettings.Production.json with production values
+Copy-Item appsettings.json appsettings.Production.json
+
+# 2. Edit appsettings.Production.json - add real M3 credentials
+# (Or use environment variables instead of file)
+
+# 3. Set Production environment
+$env:ASPNETCORE_ENVIRONMENT = "Production"
+
+# 4. Set secrets via environment variables (not User Secrets)
+$env:M3__HOST = "150.3.2.100"
+$env:M3__PORT = "6300"
+$env:M3__USER = "MBUSER"
+$env:M3__PASSWORD = "your-password"
+$env:M3__DEFAULT_COMPANY = "300"
+$env:ApiKeys__Primary = "your-api-key"
+
+# 5. Run
+dotnet run
+
+# 6. Verify configuration is loaded from environment (not User Secrets)
+# Check logs for: "Environment: Production"
+```
+
+**Verify Active Environment:**
+
+```powershell
+# Start the API
+dotnet run
+
+# Check console output for:
+# [INFO] Environment: Development  (or Production)
+# [INFO] Using appsettings.Development.json (or Production)
+```
+
+**Configuration Loading Order (by priority, highest first):**
+
+1. **Command-line arguments** (highest priority)
+2. **Environment variables** (e.g., `M3_HOST`, `ApiKeys__Primary`)
+3. **User Secrets** (Development only, via `dotnet user-secrets`)
+4. **appsettings.{Environment}.json** (e.g., `appsettings.Production.json`)
+5. **appsettings.json** (base configuration, lowest priority)
+
+**Example: Full Production Local Test**
+
+```powershell
+# Set all required environment variables
+$env:ASPNETCORE_ENVIRONMENT = "Production"
+$env:M3__HOST = "150.3.2.100"
+$env:M3__PORT = "6300"
+$env:M3__USER = "MBUSER"
+$env:M3__PASSWORD = "your-password"
+$env:M3__DEFAULT_COMPANY = "300"
+$env:ApiKeys__Primary = "production-api-key"
+$env:ApiKeys__Admin = "production-admin-key"
+$env:ConnectionPool__MinSize = "5"
+$env:ConnectionPool__MaxSize = "20"
+
+# Run in production mode
+dotnet run
+
+# Test the API
+$headers = @{ "X-API-Key" = $env:ApiKeys__Primary }
+Invoke-RestMethod -Uri "http://localhost:5000/health" -Headers $headers
+```
+
+**Reset to Development:**
+
+```powershell
+# Clear production environment variables
+Remove-Item Env:\ASPNETCORE_ENVIRONMENT
+Remove-Item Env:\M3__HOST
+Remove-Item Env:\M3__PORT
+Remove-Item Env:\M3__USER
+Remove-Item Env:\M3__PASSWORD
+Remove-Item Env:\M3__DEFAULT_COMPANY
+Remove-Item Env:\ApiKeys__Primary
+Remove-Item Env:\ApiKeys__Admin
+
+# Or set back to Development explicitly
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+
+# Run normally (uses User Secrets)
+dotnet run
+```
+
+**Important Notes:**
+
+⚠️ **User Secrets do NOT work in Production mode** - You must use environment variables or configuration files  
+⚠️ **Do NOT commit `appsettings.Production.json` with real credentials** - It's in `.gitignore` for this reason  
+⚠️ **In IIS/Production server**, environment is set via IIS App Pool configuration, not PowerShell variables
+
+### Troubleshooting Development Issues
+
+| Issue | Solution |
+|-------|----------|
+| **"M3:HOST is null"** | Run `dotnet user-secrets list` to verify secrets are set |
+| **401 Unauthorized** | Check API key: `dotnet user-secrets list \| Select-String ApiKeys:Primary` |
+| **Connection refused to M3** | Verify M3 server is reachable: `Test-NetConnection 150.3.2.100 -Port 6300` |
+| **Build errors** | Run `dotnet clean` then `dotnet restore` and `dotnet build` |
+| **Port already in use** | Change port in `appsettings.json` or `launchSettings.json` |
+| **Logs not appearing** | Check `logs/` directory exists; verify Serilog config in `appsettings.json` |
+
+### Next Steps
+
+- **Add business logic**: Implement custom workflows in `Services/`
+- **Add validation**: Extend `ItemValidationService` or create new validators
+- **Configure resilience**: Adjust Polly policies in `Infrastructure/Resilience/PollyPolicies.cs`
+- **Deploy to test environment**: See [docs/IIS_DEPLOYMENT_SRXWEBAPP1.md](docs/IIS_DEPLOYMENT_SRXWEBAPP1.md)
+
 ## Quick Start
 
 1. **Configure M3 connection:**
 ```bash
 cd C:\Projects\MOVEX\API-Integration\movex-rest-api
-dotnet user-secrets set "M3_HOST" "150.3.2.100"
-dotnet user-secrets set "M3_PORT" "6000"
-dotnet user-secrets set "M3_USER" "<your-user>"
-dotnet user-secrets set "M3_PASSWORD" "<your-password>"
+dotnet user-secrets set "M3:HOST" "150.3.2.100"
+dotnet user-secrets set "M3:PORT" "6300"
+dotnet user-secrets set "M3:USER" "<your-user>"
+dotnet user-secrets set "M3:PASSWORD" "<your-password>"
+dotnet user-secrets set "M3:DEFAULT_COMPANY" "300"
 ```
 
 2. **Generate API key:**
@@ -105,23 +522,62 @@ Then set an admin key (for key rotation and status endpoints):
 dotnet user-secrets set "ApiKeys:Admin" "your-admin-key"
 ```
 
-### M3 Credentials
+### M3 Credentials & Configuration
+
 ```bash
 dotnet user-secrets init
-dotnet user-secrets set "M3_HOST" "150.3.2.100"
-dotnet user-secrets set "M3_PORT" "6000"
-dotnet user-secrets set "M3_USER" "<your-user>"
-dotnet user-secrets set "M3_PASSWORD" "<your-password>"
+
+# M3 Connection Settings
+dotnet user-secrets set "M3:HOST" "150.3.2.100"
+dotnet user-secrets set "M3:PORT" "6300"
+dotnet user-secrets set "M3:USER" "<your-username>"
+dotnet user-secrets set "M3:PASSWORD" "<your-password>"
+
+# M3 Default Company (optional, defaults to 300)
+dotnet user-secrets set "M3:DEFAULT_COMPANY" "300"
 ```
 
 ### CI/Prod (Environment Variables)
+
 Provide all secrets via your platform's secret store (e.g., Key Vault/Secrets Manager) so they arrive as environment variables:
+
+**M3 Configuration:**
+- `M3:HOST` — M3 server hostname/IP
+- `M3:PORT` — M3 MI server port  
+- `M3:USER` — M3 username
+- `M3:PASSWORD` — M3 password
+- `M3:DEFAULT_COMPANY` — Default company number for transactions (optional, defaults to 300)
+
+**Other Configuration Variables:**
 - `ApiKeys:Primary` — Primary API key
 - `ApiKeys:Admin` — Admin key (for rotation)
-- `M3_HOST`, `M3_PORT`, `M3_USER`, `M3_PASSWORD` — M3 connection
 - `ConnectionPool:MinSize`, `ConnectionPool:MaxSize` — Connection pool sizing (optional, defaults: 2 min, 10 max)
 - `ConnectionPool:IdleTimeoutSeconds` — Idle connection timeout (optional, default: 300s)
 - `AllowedOrigins` — Configure CORS; if none are set, cross-origin requests are blocked by default
+
+**Example: Setting Environment Variables for Production**
+
+```powershell
+# PowerShell
+$env:M3__HOST = "150.3.2.100"
+$env:M3__PORT = "6300"
+$env:M3__USER = "MBUSER"
+$env:M3__PASSWORD = "your-password"
+$env:M3__DEFAULT_COMPANY = "300"  # Can be overridden per environment
+$env:ApiKeys__Primary = "your-api-key"
+```
+
+```bash
+# Linux/macOS (bash)
+export M3__HOST="150.3.2.100"
+export M3__PORT="6300"
+export M3__USER="MBUSER"
+export M3__PASSWORD="your-password"
+export M3__DEFAULT_COMPANY="300"
+export ApiKeys__Primary="your-api-key"
+```
+
+⚠️ **Configuration Format:** Use `__` (double underscore) in environment variables to represent nested JSON sections (e.g., `M3__DEFAULT_COMPANY` maps to `M3:DEFAULT_COMPANY` in `appsettings.json`)
 
 `appsettings.json` now contains placeholders only; real values must come from secrets or env vars.
 
@@ -225,7 +681,7 @@ Transactions can specify the HTTP method in their JSON config. If a transaction 
   - Returns 422 if validation fails or insufficient stock
 - `POST /api/workflows/GetStandardCost` — MES Check Standard Cost workflow
   - Validates item status (STAT=20/50) and type (ITTY=030)
-  - Retrieves unit cost price from MMS003
+  - Retrieves unit cost, facility name, and item details from MMS200MI.GetItmFac (consolidated workflow)
   - Returns 422 if validation fails or facility does not exist
 - `POST /api/workflows/AdjustStockWithValidation` — Simple stock adjustment (legacy)
   - Validates item status (STAT=20/50) and type (ITTY=030)
@@ -424,16 +880,25 @@ The `/api/workflows/StockManagement` endpoint implements the full MES stock mana
 
 ### Check Standard Cost - Requirement 2
 
-The `/api/workflows/GetStandardCost` endpoint validates an item and retrieves its unit cost:
+The `/api/workflows/GetStandardCost` endpoint validates an item and retrieves its unit cost and facility information using a consolidated MMS200MI call:
 
 **Flow:**
 1. Client sends: `ITNO` (item number), `FACI` (facility code)
 2. Server validates item via `MMS200MI.GetItmBasic`:
    - Item status (`STAT`) must be 20 (Active) or 50 (Released)
    - Item type (`ITTY`) must be "030" (raw material)
-3. Server retrieves cost via `MMS003.Get`:
+3. Server retrieves cost and facility info via `MMS200MI.GetItmFac`:
    - Returns unit cost price (`UCOS`)
-4. Returns success with cost or structured error code
+   - Returns facility name (`FACN`)
+   - Returns item description (`ITDS`)
+4. Returns success with consolidated information or structured error code
+
+**Workflow Optimization:**
+The workflow was redesigned to use `MMS200MI.GetItmFac` instead of `MMS003.Get` for the following benefits:
+- **Single M3 Call**: Consolidated data retrieval reduces network overhead
+- **Rich Response**: Includes facility name and item description in addition to unit cost
+- **Better Performance**: One transaction instead of two network round-trips
+- **Consistent Data Source**: All item information from unified MMS200MI program
 
 **Request Body:**
 ```json
@@ -443,8 +908,29 @@ The `/api/workflows/GetStandardCost` endpoint validates an item and retrieves it
 }
 ```
 
+**Response Example:**
+```json
+{
+  "success": true,
+  "program": "MMS200MI",
+  "transaction": "GetItmFac",
+  "validation": {
+    "stat": 20,
+    "itty": "030"
+  },
+  "data": {
+    "unitCostPrice": 125.50,
+    "facility": "001",
+    "facilityName": "Main Warehouse",
+    "itemNumber": "DC210055",
+    "itemDescription": "Raw Material Component"
+  },
+  "timestamp": "2025-01-13T10:30:00Z"
+}
+```
+
 **Response Codes:**
-- **200**: Success - item validated and cost retrieved
+- **200**: Success - item validated and cost + facility info retrieved
 - **400**: Missing required fields
 - **422**: Validation failed or facility does not exist (see errorCode)
 - **500**: Server error
@@ -453,13 +939,15 @@ The `/api/workflows/GetStandardCost` endpoint validates an item and retrieves it
 ```json
 {
   "success": true,
-  "program": "MMS003",
-  "transaction": "Get",
+  "program": "MMS200MI",
+  "transaction": "GetItmFac",
   "validation": { "stat": 20, "itty": "030" },
   "data": {
     "unitCostPrice": 12.50,
     "facility": "001",
-    "itemNumber": "DC210055"
+    "facilityName": "Main Warehouse",
+    "itemNumber": "DC210055",
+    "itemDescription": "Raw Material Component"
   },
   "timestamp": "2026-01-12T10:30:00Z"
 }
@@ -470,22 +958,23 @@ The `/api/workflows/GetStandardCost` endpoint validates an item and retrieves it
 The `/api/workflows/AdjustStockWithValidation` endpoint implements server-side validated stock adjustment without balance checking:
 
 **Flow:**
-1. Client sends: `ITNO`, `WHLO`, `WHSL`, `STQI`, (optional `BREM`)
-2. Server calls `MMS200MI.GetItmBasic` with `CONO=300` to fetch item
+1. Client sends: `ITNO`, `WHLO`, `WHSL`, `STQI`, (optional `STDI`, `BREM`)
+2. Server calls `MMS200MI.GetItmBasic` to fetch item and retrieve unit of measure
 3. Server validates:
    - Item status (`STAT`) must be 20 (Active) or 50 (Released)
    - Item type (`ITTY`) must equal "030" (Stock Item)
-4. If validation passes: Server calls `MMS310MI.Update` with `CONO=300` (enforced) to adjust stock
+4. If validation passes: Server calls `MMS310MI.Update` to adjust stock with auto-populated QLUN
 5. Returns success or detailed error
 
 **Request Body:**
 ```json
 {
-  "ITNO": "Item001",      // Required: Item number
-  "WHLO": "D01",          // Required: Warehouse
-  "WHSL": "L01",          // Required: Location
-  "STQI": "150",          // Required: Stock quantity to set
-  "BREM": "Q1 inventory"  // Optional: Remark/reason
+  "ITNO": "Item001",           // Required: Item number
+  "WHLO": "D01",               // Required: Warehouse
+  "WHSL": "L01",               // Required: Location
+  "STQI": "150",               // Required: Stock quantity to set
+  "STDI": "20260113",          // Optional: Physical Inventory Date (YYYYMMDD)
+  "BREM": "Q1 inventory"       // Optional: Remark/reason
 }
 ```
 
@@ -537,48 +1026,10 @@ The API is **fully config-driven** - add new M3 programs and transactions via JS
         },
         {
           "name": "ITNO",
-   TransactionConfigurationService` loads JSON configs from `transactions/` directory with hot-reload via FileSystemWatcher.
-- `TransactionStringBuilder` builds transaction strings from config and validates fields.
-- `M3ResponseParser` parses raw responses into typed objects (numeric→decimal, integer→int, date→ISO8601, boolean→bool).
-- `TransactionService` orchestrates: config lookup → string building → connection → execution → parsing.
-- `MMS200MIController` exposes REST endpoints with dynamic routing (`/api/{program}/{transaction}`).
-- Detailed logging via `ILogger<T>` for all operations; sensitive payloads are redacted (only lengths logged).
-
-### Response Parsing & Type Conversion
-When `responseFields` are configured in the transaction JSON, responses are automatically parsed:
-
-**Supported Types:**
-- **`numeric`** → `decimal` (e.g., "00123" → 123.0)
-- **`integer`** → `int` (e.g., "00042" → 42)
-- **`decimal`** → `decim
-  - Rejects unknown fields
-  - Numeric fields: digits only (`[0-9]*`)
-  - Text fields: alphanumeric + limited symbols (`[A-Za-z0-9 _\-\./:]*`)
-  - Required fields enforced
-  - Field length validation
-- **Logging**: uses `ILogger<T>` with redacted payloads (logs lengths instead of contents) to reduce sensitive data exposure.
-
-### Config Validation
-All transaction configs are validated on load using `ConfigurationValidator`:
-- Required fields: `program`, `library`, `description`, `transactions`
-- Field validation: `name`, `position`, `length`, `type`, `required`
-- Type validation: `numeric`, `text`, `date`, `boolean`, `integer`, `decimal`
-- Position uniqueness within transaction
-- Invalid configs are rejected with detailed error messages
-- **`boolean`** → `bool` (1/Y/T → true, 0/N/F → false)
-- **`text`** → `string` (trimmed)
-
-Example response:
-```json
-{
-  "CONO": 100,           // numeric → decimal
-  "ITNO": "ABC123",      // text → string (trimmed)
-  "STQT": 250,           // integer → int
-  "UNPR": 12.50,         // decimal → decimal
-  "CRDT": "2026-01-05",  // date → ISO 8601
-  "STTS": true           // boolean → bool
-}
-```
+          "position": 2,
+          "length": 40,
+          "type": "text",
+          "required": true,
           "description": "Item Number"
         },
         {
@@ -595,6 +1046,44 @@ Example response:
 ```
 
 **Hot Reload:** Changes to config files are automatically detected and reloaded (60s cleanup interval).
+
+**Key components:**
+- `TransactionConfigurationService` loads JSON configs from `transactions/` with a FileSystemWatcher.
+- `TransactionStringBuilder` builds transaction strings from config and validates fields.
+- `M3ResponseParser` parses raw responses into typed objects (numeric→decimal, integer→int, date→ISO8601, boolean→bool).
+- `TransactionService` orchestrates: config lookup → string building → connection → execution → parsing.
+- `TransactionController` exposes REST endpoints with dynamic routing (`/api/{program}/{transaction}`).
+
+### Response Parsing & Type Conversion
+When `responseFields` are configured in the transaction JSON, responses are automatically parsed:
+
+**Supported Types:**
+- **`numeric`** → `decimal` (e.g., "00123" → 123.0)
+- **`integer`** → `int` (e.g., "00042" → 42)
+- **`decimal`** → `decimal`
+- **`date`** → ISO 8601 string (`yyyy-MM-dd`)
+- **`boolean`** → `bool` (1/Y/T → true, 0/N/F → false)
+- **`text`** → `string` (trimmed)
+
+### Config Validation
+All transaction configs are validated on load using `ConfigurationValidator`:
+- Required fields: `program`, `library`, `description`, `transactions`
+- Field validation: `name`, `position`, `length`, `type`, `required`
+- Type validation: `numeric`, `text`, `date`, `boolean`, `integer`, `decimal`
+- Position uniqueness within transaction
+- Invalid configs are rejected with detailed error messages
+
+Example parsed response:
+```json
+{
+  "CONO": 100,
+  "ITNO": "ABC123",
+  "STQT": 250,
+  "UNPR": 12.50,
+  "CRDT": "2026-01-05",
+  "STTS": true
+}
+```
 
 ### Clean Architecture & Separation of Concerns
 

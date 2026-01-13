@@ -28,17 +28,19 @@
       ],
       "responseFields": [
         {
-          "name": "CONO",
+          "name": "STAT",
           "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "description": "Company Number"
+          "length": 2,
+          "type": "integer",
+          "startIndex": 16,
+          "description": "Item Status (absolute position)"
         },
         {
           "name": "ITNO",
           "position": 2,
-          "length": 40,
+          "length": 15,
           "type": "text",
+          "startIndex": 18,
           "description": "Item Number"
         },
         {
@@ -46,23 +48,116 @@
           "position": 3,
           "length": 30,
           "type": "text",
-          "description": "Item Description"
-        },
-        {
-          "name": "STAT",
-          "position": 4,
-          "length": 2,
-          "type": "integer",
-          "startIndex": 16,
-          "description": "Item Status (absolute position)"
+          "description": "Item Name"
         },
         {
           "name": "ITTY",
-          "position": 5,
+          "position": 4,
           "length": 3,
           "type": "text",
           "startIndex": 268,
           "description": "Item Type (absolute position)"
+        },
+        {
+          "name": "UNMS",
+          "position": 5,
+          "length": 3,
+          "type": "text",
+          "startIndex": 189,
+          "description": "Unit of Measure (absolute position)"
+        }
+      ]
+    },
+    {
+      "name": "GetItmFac",
+      "description": "Get Item Facility Information",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "startIndex": 16,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "startIndex": 19,
+          "description": "Facility"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "startIndex": 22,
+          "description": "Item Number"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 16,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "startIndex": 19,
+          "description": "Facility"
+        },
+        {
+          "name": "FACN",
+          "position": 3,
+          "length": 30,
+          "type": "text",
+          "startIndex": 22,
+          "description": "Facility Name"
+        },
+        {
+          "name": "ITNO",
+          "position": 4,
+          "length": 15,
+          "type": "text",
+          "startIndex": 52,
+          "description": "Item Number"
+        },
+        {
+          "name": "ITDS",
+          "position": 5,
+          "length": 30,
+          "type": "text",
+          "startIndex": 67,
+          "description": "Item Description"
+        },
+        {
+          "name": "APPR",
+          "position": 6,
+          "length": 19,
+          "type": "decimal",
+          "startIndex": 119,
+          "description": "Approved"
+        },
+        {
+          "name": "UCOS",
+          "position": 7,
+          "length": 19,
+          "type": "decimal",
+          "startIndex": 138,
+          "description": "Unit Cost"
         }
       ]
     },
@@ -132,6 +227,7 @@
           "position": 1,
           "length": 3,
           "type": "numeric",
+          "startIndex": 16,
           "required": true,
           "description": "Company Number"
         },
@@ -141,6 +237,7 @@
           "length": 3,
           "type": "text",
           "required": true,
+          "startIndex": 19,
           "description": "Warehouse"
         },
         {
@@ -148,6 +245,7 @@
           "position": 3,
           "length": 15,
           "type": "text",
+          "startIndex": 22,
           "required": true,
           "description": "Item Number"
         }
@@ -158,6 +256,7 @@
           "position": 1,
           "length": 3,
           "type": "numeric",
+          "startIndex": 16,
           "description": "Company Number"
         },
         {
@@ -165,6 +264,7 @@
           "position": 2,
           "length": 3,
           "type": "text",
+          "startIndex": 19,
           "description": "Warehouse"
         },
         {
@@ -172,6 +272,7 @@
           "position": 3,
           "length": 15,
           "type": "text",
+          "startIndex": 22,
           "description": "Item Number"
         },
         {
@@ -179,6 +280,7 @@
           "position": 4,
           "length": 15,
           "type": "decimal",
+          "startIndex": 37,
           "description": "On-hand balance approved"
         }
       ]

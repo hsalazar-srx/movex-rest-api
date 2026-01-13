@@ -14,14 +14,16 @@
           "position": 1,
           "length": 3,
           "type": "numeric",
+          "startIndex": 16,
           "required": true,
-          "description": "Company Number (server-enforced to 300)"
+          "description": "Company Number"
         },
         {
           "name": "WHLO",
           "position": 2,
           "length": 3,
           "type": "text",
+          "startIndex": 19,
           "required": true,
           "description": "Warehouse"
         },
@@ -30,6 +32,7 @@
           "position": 3,
           "length": 15,
           "type": "text",
+          "startIndex": 22,
           "required": true,
           "description": "Item Number"
         },
@@ -38,6 +41,7 @@
           "position": 4,
           "length": 10,
           "type": "text",
+          "startIndex": 37,
           "required": true,
           "description": "Location"
         },
@@ -46,15 +50,34 @@
           "position": 5,
           "length": 15,
           "type": "numeric",
+          "startIndex": 81,
           "required": true,
           "description": "Physical Inventory Quantity"
         },
         {
-          "name": "BREM",
+          "name": "QLUN",
           "position": 6,
-          "startIndex": 162,
+          "length": 3,
+          "type": "text",
+          "startIndex": 96,
+          "required": true,
+          "description": "Quality Handling Unit (must match item basic UOM)"
+        },
+        {
+          "name": "STDI",
+          "position": 7,
+          "length": 8,
+          "type": "date",
+          "startIndex": 104,
+          "required": false,
+          "description": "Physical Inventory Date (YYYYMMDD format)"
+        },
+        {
+          "name": "BREM",
+          "position": 8,
           "length": 10,
           "type": "text",
+          "startIndex": 162,
           "required": false,
           "description": "Remark / reason (MI absolute position 162-171)"
         }
