@@ -32,7 +32,7 @@ Before starting, verify:
   - [ ] Application Development > .NET Core Hosting Bundle
   - [ ] Application Development > ASP.NET Core Runtime
   - [ ] Management Tools > IIS Management Console
-- [ ] **Network Access**: SRXWEBAPP1 can reach M3 server on port 6000 (test with `Test-NetConnection -ComputerName 150.3.2.100 -Port 6000`)
+- [ ] **Network Access**: SRXWEBAPP1 can reach M3 server on port 6300 (test with `Test-NetConnection -ComputerName 150.3.2.100 -Port 6300`)
 - [ ] **Disk Space**: At least 500 MB free space for app files and logs
 - [ ] **M3 Credentials**: Have M3 username, password, and company code (300) verified
 - [ ] **API Key**: Generated and ready (`.\scripts\generate-api-key-simple.ps1` from dev machine)
@@ -244,11 +244,13 @@ Ensure your site has a binding:
 | Variable | Value | Example |
 |----------|-------|---------|
 | `ASPNETCORE_ENVIRONMENT` | `Production` | `Production` |
-| `M3_HOST` | M3 server IP/hostname | `150.3.2.100` |
-| `M3_PORT` | M3 MI port | `6000` |
-| `M3_USER` | M3 username | `MBUSER` |
-| `M3_PASSWORD` | M3 password | `your-password` |
+| `M3__HOST` | M3 server IP/hostname | `150.3.2.100` |
+| `M3__PORT` | M3 MI port | `6300` |
+| `M3__USER` | M3 username | `MBUSER` |
+| `M3__PASSWORD` | M3 password | `your-password` |
+| `M3__DEFAULT_COMPANY` | M3 company code | `300` |
 | `ApiKeys__Primary` | Generated API key | `q8VxK9...` |
+| `ApiKeys__Admin` | Admin API key | `admin-key...` |
 | `Logging__LogLevel__Default` | Log level | `Information` |
 
 **In PowerShell:**
@@ -265,19 +267,23 @@ Set-WebConfigurationProperty -PSPath $appPath `
 
 Set-WebConfigurationProperty -PSPath $appPath `
     -Filter "system.webServer/aspNetCore/environmentVariables" `
-    -Value @{name="M3_HOST"; value="150.3.2.100"}
+    -Value @{name="M3__HOST"; value="150.3.2.100"}
 
 Set-WebConfigurationProperty -PSPath $appPath `
     -Filter "system.webServer/aspNetCore/environmentVariables" `
-    -Value @{name="M3_PORT"; value="6000"}
+    -Value @{name="M3__PORT"; value="6300"}
 
 Set-WebConfigurationProperty -PSPath $appPath `
     -Filter "system.webServer/aspNetCore/environmentVariables" `
-    -Value @{name="M3_USER"; value="MBUSER"}
+    -Value @{name="M3__USER"; value="MBUSER"}
 
 Set-WebConfigurationProperty -PSPath $appPath `
     -Filter "system.webServer/aspNetCore/environmentVariables" `
-    -Value @{name="M3_PASSWORD"; value="your-password"}
+    -Value @{name="M3__PASSWORD"; value="your-password"}
+
+Set-WebConfigurationProperty -PSPath $appPath `
+    -Filter "system.webServer/aspNetCore/environmentVariables" `
+    -Value @{name="M3__DEFAULT_COMPANY"; value="300"}
 
 Set-WebConfigurationProperty -PSPath $appPath `
     -Filter "system.webServer/aspNetCore/environmentVariables" `
@@ -288,11 +294,44 @@ Set-WebConfigurationProperty -PSPath $appPath `
     -Value @{name="Logging__LogLevel__Default"; value="Information"}
 ```
 
-### 4.2 Verify Environment Variables
+### 4.2 Alternative: Edit web.config Directly (Recommended if PowerShell unavailable)
+
+If IIS Manager doesn't show the Environment section or you can't run PowerShell scripts:
+
+1. **Open web.config** in Notepad:
+   ```cmd
+   cd C:\inetpub\wwwroot\movex-api
+   notepad web.config
+   ```
+
+2. **Find the `<environmentVariables>` section** and add all variables:
+   ```xml
+   <environmentVariables>
+     <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+     <environmentVariable name="ASPNETCORE_URLS" value="http://+:5000" />
+     <environmentVariable name="M3__HOST" value="150.3.2.100" />
+     <environmentVariable name="M3__PORT" value="6300" />
+     <environmentVariable name="M3__USER" value="MBUSER" />
+     <environmentVariable name="M3__PASSWORD" value="your-actual-password" />
+     <environmentVariable name="M3__DEFAULT_COMPANY" value="300" />
+     <environmentVariable name="ApiKeys__Primary" value="your-generated-api-key" />
+     <environmentVariable name="ApiKeys__Admin" value="your-admin-key" />
+     <environmentVariable name="Logging__LogLevel__Default" value="Information" />
+   </environmentVariables>
+   ```
+
+3. **Save the file** and **restart the application pool** in IIS Manager
+
+**Important:** 
+- Use **double underscores `__`** to represent nested configuration (e.g., `M3__HOST` → `M3:HOST` in code)
+- These values override `appsettings.json`
+- Protect `web.config` file permissions since it contains credentials
+
+### 4.3 Verify Environment Variables
 
 ```powershell
 # Check app pool environment
-Get-ChildItem Env: | Where-Object { $_.Name -like "M3_*" -or $_.Name -like "ApiKeys*" }
+Get-ChildItem Env: | Where-Object { $_.Name -like "M3__*" -or $_.Name -like "ApiKeys__*" }
 ```
 
 ---
@@ -500,7 +539,7 @@ Get-IISAppPool "Movex.API" | ForEach-Object {
 **Solution:**
 1. Check logs: `Get-Content "C:\inetpub\wwwroot\movex-api\logs\*.txt" -Tail 50`
 2. Verify environment variables are set
-3. Check M3 connectivity: `Test-NetConnection -ComputerName 150.3.2.100 -Port 6000`
+3. Check M3 connectivity: `Test-NetConnection -ComputerName 150.3.2.100 -Port 6300`
 4. Restart app pool: `Restart-IISAppPool -Name "Movex.API"`
 
 ### Issue: API key authentication fails (HTTP 401)
@@ -513,7 +552,7 @@ Get-IISAppPool "Movex.API" | ForEach-Object {
 ### Issue: M3 connection fails
 
 **Solution:**
-1. Verify M3 host/port: `Test-NetConnection -ComputerName 150.3.2.100 -Port 6000`
+1. Verify M3 host/port: `Test-NetConnection -ComputerName 150.3.2.100 -Port 6300`
 2. Verify M3 credentials are correct
 3. Check if M3 server is running
 4. Check network firewall rules
@@ -575,7 +614,7 @@ Remove-Item "C:\inetpub\wwwroot\movex-api" -Recurse -Force
 - [ ] Logs are being written to files
 - [ ] App pool recycles on schedule without errors
 - [ ] SSL/HTTPS is enabled (if required)
-- [ ] Firewall rules allow access to M3 (port 6000)
+- [ ] Firewall rules allow access to M3 (port 6300)
 - [ ] Backup of deployment created
 - [ ] Team notified of successful deployment
 
