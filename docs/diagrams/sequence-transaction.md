@@ -3,6 +3,12 @@
 Updated: 2026-01-12
 
 ```mermaid
+---
+config:
+  theme: light
+  layout: elk
+  look: classic
+---
 sequenceDiagram
   autonumber
   participant Client as MES Client

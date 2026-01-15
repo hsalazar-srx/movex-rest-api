@@ -3,6 +3,12 @@
 Updated: 2026-01-12
 
 ```mermaid
+---
+config:
+  theme: light
+  layout: elk
+  look: classic
+---
 stateDiagram-v2
   [*] --> Initialized
   Initialized: Create Semaphore (MaxPoolSize), pre-create MinPoolSize connections

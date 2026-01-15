@@ -3,6 +3,12 @@
 Updated: 2026-01-12
 
 ```mermaid
+---
+config:
+  theme: light
+  layout: elk
+  look: classic
+---
 flowchart TD
   A[Startup] --> B[TransactionConfigurationService]
   B --> C["LoadConfigurations()"]

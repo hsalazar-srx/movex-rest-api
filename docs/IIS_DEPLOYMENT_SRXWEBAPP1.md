@@ -16,8 +16,9 @@
 6. [Step 5: Logging Setup](#step-5-logging-setup)
 7. [Step 6: Verification & Health Checks](#step-6-verification--health-checks)
 8. [Step 7: Production Hardening](#step-7-production-hardening)
-9. [Troubleshooting](#troubleshooting)
-10. [Rollback Procedure](#rollback-procedure)
+9. [Step 8: Monitoring and Maintain](#step-8-monitor-and-maintain)
+10. [Troubleshooting](#troubleshooting)
+11. [Rollback Procedure](#rollback-procedure)
 
 ---
 

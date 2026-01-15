@@ -3,6 +3,12 @@
 Updated: 2026-01-12
 
 ```mermaid
+---
+config:
+  theme: light
+  layout: elk
+  look: classic
+---
 flowchart TD
   A[Raw response string] --> B{Any fields have StartIndex?}
   B -- Yes --> C[Absolute parsing]

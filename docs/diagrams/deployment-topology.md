@@ -3,6 +3,12 @@
 Updated: 2026-01-12
 
 ```mermaid
+---
+config:
+  theme: light
+  layout: elk
+  look: classic
+---
 flowchart LR
   Dev[Dev Machine] -->|publish zip| Temp[C:\\temp\\movex-api.zip]
   Temp -->|transfer| SRX[SRXWEBAPP1]

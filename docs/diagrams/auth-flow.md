@@ -3,6 +3,13 @@
 Updated: 2026-01-12
 
 ```mermaid
+---
+config:
+  theme: light
+  layout: elk
+  look: classic
+---
+
 flowchart LR
   A[Incoming HTTP request] --> B{Path == /health?}
   B -- Yes --> H[Allow anonymous]
