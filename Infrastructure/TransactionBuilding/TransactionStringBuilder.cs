@@ -73,11 +73,11 @@ namespace Movex.API.Infrastructure.TransactionBuilding
         /// Build fields using absolute positioning (StartIndex) - fills gaps with spaces
         /// Used for modern transaction definitions with explicit absolute positions
         /// StartIndex values are absolute positions from the start of the entire MI command
-        /// We subtract 15 to account for the 15-character transaction name prefix
+        /// We subtract <c>TransactionNameLength</c> to convert absolute positions (which include the 15-character transaction name prefix) into buffer-relative indices.
         /// </summary>
         private string BuildFieldsWithAbsolutePositioning(List<FieldConfig> fields, Dictionary<string, string> fieldValues)
         {
-            const int TransactionNameLength = 16; // 15 chars + 1 for 1-based index adjustment
+            const int TransactionNameLength = 16; // Offset from start of MI command to first field (accounts for the 15-character transaction name prefix)
 
             // Calculate total buffer size needed (accounting for transaction name offset)
             int maxPosition = 0;
@@ -126,7 +126,7 @@ namespace Movex.API.Infrastructure.TransactionBuilding
                 }
             }
 
-            return new string(buffer).TrimEnd();
+            return new string(buffer);
         }
 
         /// <summary>

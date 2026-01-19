@@ -1069,8 +1069,9 @@ The TransactionStringBuilder supports two field positioning modes for building M
 - Fields are placed at exact character positions within the MI command
 - Gaps between fields are automatically filled with spaces
 - Allows precise control for transactions with fixed-position requirements
-- `startIndex` values are **absolute positions from the start of the entire MI command**, including the 15-character padded transaction name
-- Automatically adjusted internally: position 16 = first char after "TransactionName    " (15 chars)
+- In JSON, `startIndex` values are **absolute positions from the start of the entire MI command**, including the 15-character padded transaction name
+- Internally, the builder subtracts the transaction-name prefix length (16) from each configured `startIndex`, so internal offsets are relative to the data area after `"TransactionName    "` (e.g., configured position 16 becomes internal offset 0)
+- Examples in this README use the same absolute `startIndex` values you should specify in JSON (the library takes care of the internal adjustment)
 - Suitable for complex M3 programs like MMS310MI with specific field layouts
 
 **Example: MMS310MI.Update with absolute positioning**

@@ -1,6 +1,6 @@
 // Controllers/TransactionController.cs - REST API Controller for M3 transactions
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.TagHelpers;
+
 using Movex.API.Core.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -77,9 +77,8 @@ namespace Movex.API.Controllers
             string? whlo = request.ContainsKey("WHLO") ? request["WHLO"]?.ToString() : null;
             string? whsl = request.ContainsKey("WHSL") ? request["WHSL"]?.ToString() : null;
             string? stqi = request.ContainsKey("STQI") ? request["STQI"]?.ToString() : null;
-            string? stag = request.ContainsKey("STAG") && !string.IsNullOrWhiteSpace(request["STAG"]?.ToString())
-                ? request["STAG"]?.ToString()
-                : "2"; // Default to "2" (Approved)
+            string? stagValue = request.ContainsKey("STAG") ? request["STAG"]?.ToString() : null;
+            string? stag = string.IsNullOrWhiteSpace(stagValue) ? "2" : stagValue; // Default to "2" (Approved)
             string? stdi = request.ContainsKey("STDI") && !string.IsNullOrWhiteSpace(request["STDI"]?.ToString())
                 ? request["STDI"]?.ToString()
                 : DateTime.Now.ToString("yyyyMMdd"); // Default to current date
