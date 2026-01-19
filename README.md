@@ -958,13 +958,13 @@ The workflow was redesigned to use `MMS200MI.GetItmFac` instead of `MMS003.Get` 
 The `/api/workflows/AdjustStockWithValidation` endpoint implements server-side validated stock adjustment without balance checking:
 
 **Flow:**
-1. Client sends: `ITNO`, `WHLO`, `WHSL`, `STQI`, (optional `STDI`, `BREM`)
-2. Server calls `MMS200MI.GetItmBasic` to fetch item and retrieve unit of measure
-3. Server validates:
+1. Client sends: `ITNO`, `WHLO`, `WHSL`, `STQI`, (optional `STAG`, `STDI`, `BREM`)
+2. Server validates:
    - Item status (`STAT`) must be 20 (Active) or 50 (Released)
    - Item type (`ITTY`) must equal "030" (Stock Item)
-4. If validation passes: Server calls `MMS310MI.Update` to adjust stock with auto-populated QLUN
-5. Returns success or detailed error
+   - STAG (if provided) must be 1, 2, or 3
+3. If validation passes: Server calls `MMS310MI.Update` to adjust stock
+4. Returns success or detailed error
 
 **Request Body:**
 ```json
@@ -973,14 +973,15 @@ The `/api/workflows/AdjustStockWithValidation` endpoint implements server-side v
   "WHLO": "D01",               // Required: Warehouse
   "WHSL": "L01",               // Required: Location
   "STQI": "150",               // Required: Stock quantity to set
-  "STDI": "20260113",          // Optional: Physical Inventory Date (YYYYMMDD)
+  "STAG": "2",                 // Optional: Item Status (1=Under Inspection, 2=Approved, 3=Rejected, defaults to 2)
+  "STDI": "20260113",          // Optional: Physical Inventory Date (YYYYMMDD, defaults to current date)
   "BREM": "Q1 inventory"       // Optional: Remark/reason
 }
 ```
 
 **Response Codes:**
 - **200**: Item validated and stock adjusted successfully
-- **400**: Missing required fields (ITNO, WHLO, WHSL, STQI)
+- **400**: Missing required fields (ITNO, WHLO, WHSL, STQI) or invalid STAG value
 - **422**: Validation failed (item status/type not allowed for adjustment)
 - **502**: M3 communication error during validation
 - **500**: Server error
@@ -1053,7 +1054,6 @@ The API is **fully config-driven** - add new M3 programs and transactions via JS
 - `M3ResponseParser` parses raw responses into typed objects (numeric→decimal, integer→int, date→ISO8601, boolean→bool).
 - `TransactionService` orchestrates: config lookup → string building → connection → execution → parsing.
 - `TransactionController` exposes REST endpoints with dynamic routing (`/api/{program}/{transaction}`).
-
 ### Response Parsing & Type Conversion
 When `responseFields` are configured in the transaction JSON, responses are automatically parsed:
 

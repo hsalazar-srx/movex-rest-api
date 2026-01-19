@@ -15,6 +15,14 @@ namespace Movex.API.Core.Models
         public string Type { get; set; } = string.Empty; // "numeric", "text", "date", etc.
         public bool Required { get; set; }
         public string Description { get; set; } = string.Empty;
+        /// <summary>
+        /// Optional absolute start index (1-based) for field positioning in the MI command string.
+        /// When provided, uses absolute positioning with gap-filling (fills spaces between fields).
+        /// Values are absolute positions from the START of the entire MI command (including 15-char transaction name).
+        /// Example: startIndex 16 = position 1 after "TransactionName    " (15 chars).
+        /// If omitted, fields are built sequentially in Position order (legacy mode).
+        /// </summary>
+        public int? StartIndex { get; set; }
     }
 
     /// <summary>

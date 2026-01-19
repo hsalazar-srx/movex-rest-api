@@ -1,5 +1,6 @@
 // Controllers/TransactionController.cs - REST API Controller for M3 transactions
 using Microsoft.AspNetCore.Mvc;
+
 using Movex.API.Core.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -33,6 +34,35 @@ namespace Movex.API.Controllers
         }
 
         /// <summary>
+        /// Check if M3 response indicates success (starts with "OK") or failure (starts with "NOK")
+        /// </summary>
+        private bool IsM3ResponseSuccessful(object? response, out string? errorMessage)
+        {
+            errorMessage = null;
+            
+            if (response == null)
+            {
+                errorMessage = "No response from M3";
+                return false;
+            }
+            
+            // Check if response is a string (raw response)
+            if (response is string rawResponse)
+            {
+                if (rawResponse.StartsWith("NOK", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Extract error message after "NOK "
+                    errorMessage = rawResponse.Length > 4 ? rawResponse.Substring(4).Trim() : "Transaction failed";
+                    return false;
+                }
+                return rawResponse.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
+            }
+            
+            // For parsed responses (Dictionary), assume success if no exception was thrown
+            return true;
+        }
+
+        /// <summary>
         /// Validate item and adjust stock in a single server-side flow (Option A)
         /// </summary>
         [HttpPost("workflows/AdjustStockWithValidation")]
@@ -47,6 +77,8 @@ namespace Movex.API.Controllers
             string? whlo = request.ContainsKey("WHLO") ? request["WHLO"]?.ToString() : null;
             string? whsl = request.ContainsKey("WHSL") ? request["WHSL"]?.ToString() : null;
             string? stqi = request.ContainsKey("STQI") ? request["STQI"]?.ToString() : null;
+            string? stagValue = request.ContainsKey("STAG") ? request["STAG"]?.ToString() : null;
+            string? stag = string.IsNullOrWhiteSpace(stagValue) ? "2" : stagValue; // Default to "2" (Approved)
             string? stdi = request.ContainsKey("STDI") && !string.IsNullOrWhiteSpace(request["STDI"]?.ToString())
                 ? request["STDI"]?.ToString()
                 : DateTime.Now.ToString("yyyyMMdd"); // Default to current date
@@ -59,6 +91,17 @@ namespace Movex.API.Controllers
                         success = false,
                         error = "Required fields: ITNO, WHLO, WHSL, STQI",
                         provided = new { ITNO = itno, WHLO = whlo, WHSL = whsl, STQI = stqi }
+                    });
+                }
+
+                // Validate STAG (Item Status: 1=Under Inspection, 2=Approved, 3=Rejected)
+                if (!new[] { "1", "2", "3" }.Contains(stag))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        error = "STAG must be 1 (Under Inspection), 2 (Approved), or 3 (Rejected)",
+                        provided = stag
                     });
                 }
 
@@ -76,27 +119,7 @@ namespace Movex.API.Controllers
                     });
                 }
 
-                // 2) Get item unit of measure (UNMS) from MMS200MI.GetItmBasic
-                var itemBasicFields = new Dictionary<string, string>
-                {
-                    { "CONO", company },
-                    { "ITNO", itno ?? string.Empty }
-                };
-                
-                var itemBasicResponse = await _service.ExecuteTransactionAsync("MMS200MI", "GetItmBasic", itemBasicFields) as Dictionary<string, object>;
-                string qlun = "EA"; // Default fallback
-                
-                if (itemBasicResponse != null && itemBasicResponse.TryGetValue("UNMS", out var unmsObj))
-                {
-                    qlun = unmsObj?.ToString()?.Trim() ?? "EA";
-                    _logger.LogInformation("[AdjustStockWithValidation] Retrieved UNMS={UNMS} for item {ITNO}", qlun, itno);
-                }
-                else
-                {
-                    _logger.LogWarning("[AdjustStockWithValidation] Could not retrieve UNMS for item {ITNO}, using default EA", itno);
-                }
-
-                // 3) Adjust stock via MMS310MI.Update (using configured company)
+                // 2) Adjust stock via MMS310MI.Update (using configured company)
                 var updateFields = new Dictionary<string, string>
                 {
                     { "CONO", company },
@@ -104,14 +127,29 @@ namespace Movex.API.Controllers
                     { "ITNO", itno ?? string.Empty },
                     { "WHSL", whsl ?? string.Empty },
                     { "STQI", stqi ?? string.Empty },
-                    { "QLUN", qlun },
-                    { "STDI", stdi },
+                    { "STAG", stag ?? "2" },
+                    { "STDI", stdi ?? DateTime.Now.ToString("yyyyMMdd") },
                     { "BREM", brem ?? string.Empty }
                 };
 
                 var updateResponse = await _service.ExecuteTransactionAsync("MMS310MI", "Update", updateFields) as Dictionary<string, object>;
 
                 object updateData = updateResponse ?? (object)new { message = "Update executed" };
+
+                // Check if M3 response indicates success
+                bool isSuccess = IsM3ResponseSuccessful(updateResponse ?? updateData, out string? m3Error);
+                
+                if (!isSuccess)
+                {
+                    _logger.LogWarning("[AdjustStockWithValidation] M3 returned NOK: {Error}", m3Error);
+                    return StatusCode(422, new
+                    {
+                        success = false,
+                        error = m3Error ?? "Transaction failed",
+                        program = "MMS310MI",
+                        transaction = "Update"
+                    });
+                }
 
                 return Ok(new
                 {
@@ -229,6 +267,21 @@ namespace Movex.API.Controllers
                 var updateResponse = await _service.ExecuteTransactionAsync("MMS310MI", "Update", updateFields) as Dictionary<string, object>;
 
                 object updateData = updateResponse ?? (object)new { message = "Stock updated" };
+
+                // Check if M3 response indicates success
+                bool isSuccess = IsM3ResponseSuccessful(updateResponse ?? updateData, out string? m3Error);
+                
+                if (!isSuccess)
+                {
+                    _logger.LogWarning("[StockManagement] M3 returned NOK: {Error}", m3Error);
+                    return StatusCode(422, new
+                    {
+                        success = false,
+                        error = m3Error ?? "Transaction failed",
+                        program = "MMS310MI",
+                        transaction = "Update"
+                    });
+                }
 
                 _logger.LogInformation("[StockManagement] Stock updated successfully for item {ITNO}", itno);
 
@@ -453,6 +506,21 @@ namespace Movex.API.Controllers
                     _ => new { raw = response?.ToString() }
                 };
 
+                // Check if M3 response indicates success
+                bool isSuccess = IsM3ResponseSuccessful(response, out string? m3Error);
+                
+                if (!isSuccess)
+                {
+                    _logger.LogWarning("[ExecuteTransaction] M3 returned NOK for {Program}/{Transaction}: {Error}", program, transaction, m3Error);
+                    return StatusCode(422, new
+                    {
+                        success = false,
+                        error = m3Error ?? "Transaction failed",
+                        program = program,
+                        transaction = transaction
+                    });
+                }
+
                 return Ok(new
                 {
                     success = true,
@@ -514,6 +582,21 @@ namespace Movex.API.Controllers
                     List<Dictionary<string, object>> list => new { records = list, count = list.Count },
                     _ => new { raw = response?.ToString() }
                 };
+
+                // Check if M3 response indicates success
+                bool isSuccess = IsM3ResponseSuccessful(response, out string? m3Error);
+                
+                if (!isSuccess)
+                {
+                    _logger.LogWarning("[ExecuteTransactionGet] M3 returned NOK for {Program}/{Transaction}: {Error}", program, transaction, m3Error);
+                    return StatusCode(422, new
+                    {
+                        success = false,
+                        error = m3Error ?? "Transaction failed",
+                        program = program,
+                        transaction = transaction
+                    });
+                }
 
                 return Ok(new
                 {

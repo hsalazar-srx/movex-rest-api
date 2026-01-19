@@ -284,6 +284,78 @@
           "description": "On-hand balance approved"
         }
       ]
+    },
+    {
+      "name": "UpdItmBasic",
+      "description": "Update Item Basic Information",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 16,
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "ITNO",
+          "position": 2,
+          "length": 15,
+          "type": "text",
+          "startIndex": 19,
+          "required": true,
+          "description": "Item Number"
+        },
+        {
+          "name": "STAT",
+          "position": 3,
+          "length": 2,
+          "type": "text",
+          "startIndex": 34,
+          "required": false,
+          "description": "Status"
+        },
+        {
+          "name": "ITDS",
+          "position": 4,
+          "length": 30,
+          "type": "text",
+          "startIndex": 36,
+          "required": false,
+          "description": "Item Name"
+        },
+        {
+          "name": "FUDS",
+          "position": 5,
+          "length": 30,
+          "type": "text",
+          "startIndex": 66,
+          "required": false,
+          "description": "Description 2"
+        },
+        {
+          "name": "RESP",
+          "position": 6,
+          "length": 10,
+          "type": "text",
+          "startIndex": 146,
+          "required": false,
+          "description": "Responsible"
+        },
+        {
+          "name": "UNMS",
+          "position": 7,
+          "length": 3,
+          "type": "text",
+          "startIndex": 156,
+          "required": false,
+          "description": "Basic Unit of Measure"
+        }
+      ],
+      "responseFields": []
     }
   ]
 }
