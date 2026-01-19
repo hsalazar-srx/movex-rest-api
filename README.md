@@ -958,13 +958,13 @@ The workflow was redesigned to use `MMS200MI.GetItmFac` instead of `MMS003.Get` 
 The `/api/workflows/AdjustStockWithValidation` endpoint implements server-side validated stock adjustment without balance checking:
 
 **Flow:**
-1. Client sends: `ITNO`, `WHLO`, `WHSL`, `STQI`, (optional `STDI`, `BREM`)
-2. Server calls `MMS200MI.GetItmBasic` to fetch item and retrieve unit of measure
-3. Server validates:
+1. Client sends: `ITNO`, `WHLO`, `WHSL`, `STQI`, (optional `STAG`, `STDI`, `BREM`)
+2. Server validates:
    - Item status (`STAT`) must be 20 (Active) or 50 (Released)
    - Item type (`ITTY`) must equal "030" (Stock Item)
-4. If validation passes: Server calls `MMS310MI.Update` to adjust stock with auto-populated QLUN
-5. Returns success or detailed error
+   - STAG (if provided) must be 1, 2, or 3
+3. If validation passes: Server calls `MMS310MI.Update` to adjust stock
+4. Returns success or detailed error
 
 **Request Body:**
 ```json
@@ -973,14 +973,15 @@ The `/api/workflows/AdjustStockWithValidation` endpoint implements server-side v
   "WHLO": "D01",               // Required: Warehouse
   "WHSL": "L01",               // Required: Location
   "STQI": "150",               // Required: Stock quantity to set
-  "STDI": "20260113",          // Optional: Physical Inventory Date (YYYYMMDD)
+  "STAG": "2",                 // Optional: Item Status (1=Under Inspection, 2=Approved, 3=Rejected, defaults to 2)
+  "STDI": "20260113",          // Optional: Physical Inventory Date (YYYYMMDD, defaults to current date)
   "BREM": "Q1 inventory"       // Optional: Remark/reason
 }
 ```
 
 **Response Codes:**
 - **200**: Item validated and stock adjusted successfully
-- **400**: Missing required fields (ITNO, WHLO, WHSL, STQI)
+- **400**: Missing required fields (ITNO, WHLO, WHSL, STQI) or invalid STAG value
 - **422**: Validation failed (item status/type not allowed for adjustment)
 - **502**: M3 communication error during validation
 - **500**: Server error
@@ -1053,6 +1054,46 @@ The API is **fully config-driven** - add new M3 programs and transactions via JS
 - `M3ResponseParser` parses raw responses into typed objects (numeric→decimal, integer→int, date→ISO8601, boolean→bool).
 - `TransactionService` orchestrates: config lookup → string building → connection → execution → parsing.
 - `TransactionController` exposes REST endpoints with dynamic routing (`/api/{program}/{transaction}`).
+
+### Field Positioning: Sequential vs. Absolute
+
+The TransactionStringBuilder supports two field positioning modes for building MI command strings:
+
+**Sequential Positioning (Legacy)** - Used when fields have no `startIndex`:
+- Fields are concatenated in `Position` order without gaps
+- Each field immediately follows the previous one
+- Suitable for most transactions with simple field layouts
+- Example: Field1 (10 chars) + Field2 (8 chars) + Field3 (15 chars)
+
+**Absolute Positioning (Modern)** - Used when any field has a `startIndex`:
+- Fields are placed at exact character positions within the MI command
+- Gaps between fields are automatically filled with spaces
+- Allows precise control for transactions with fixed-position requirements
+- `startIndex` values are **absolute positions from the start of the entire MI command**, including the 15-character padded transaction name
+- Automatically adjusted internally: position 16 = first char after "TransactionName    " (15 chars)
+- Suitable for complex M3 programs like MMS310MI with specific field layouts
+
+**Example: MMS310MI.Update with absolute positioning**
+```json
+{
+  "name": "Update",
+  "fields": [
+    { "name": "CONO", "position": 1, "length": 3, "startIndex": 16, "type": "numeric" },
+    { "name": "WHLO", "position": 2, "length": 3, "startIndex": 19, "type": "text" },
+    { "name": "ITNO", "position": 3, "length": 15, "startIndex": 22, "type": "text" },
+    { "name": "WHSL", "position": 4, "length": 10, "startIndex": 37, "type": "text" },
+    { "name": "STQI", "position": 5, "length": 11, "startIndex": 81, "type": "numeric" }
+  ]
+}
+```
+
+Generated MI command: `Update         [space-padded fields at exact positions]`
+- Transaction name padded to 15 chars: `"Update         "` (0-14)
+- CONO at position 16-18: `"300"`
+- WHLO at position 19-21: `"D01"`
+- ITNO at position 22-36: `"DC210055        "`
+- WHSL at position 37-46: `"D07AA5    "`
+- STQI at position 81-91: `"00000000050"`
 
 ### Response Parsing & Type Conversion
 When `responseFields` are configured in the transaction JSON, responses are automatically parsed:

@@ -4,6 +4,51 @@
   "description": "Stock Adjustment",
   "transactions": [
     {
+      "name": "Get",
+      "description": "Retrieve stock adjustment information",
+      "httpMethod": "GET",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 16,
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "WHLO",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "startIndex": 19,
+          "required": true,
+          "description": "Warehouse"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "startIndex": 22,
+          "required": true,
+          "description": "Item Number"
+        },
+        {
+          "name": "WHSL",
+          "position": 4,
+          "length": 10,
+          "type": "text",
+          "startIndex": 37,
+          "required": true,
+          "description": "Location"
+        }
+      ],
+      "responseFields": []
+    },
+    {
       "name": "Update",
       "description": "Adjust stock quantity at location",
       "httpMethod": "POST",
@@ -48,20 +93,20 @@
         {
           "name": "STQI",
           "position": 5,
-          "length": 15,
+          "length": 11,
           "type": "numeric",
           "startIndex": 81,
           "required": true,
           "description": "Physical Inventory Quantity"
         },
         {
-          "name": "QLUN",
+          "name": "STAG",
           "position": 6,
-          "length": 3,
-          "type": "text",
-          "startIndex": 96,
+          "length": 1,
+          "type": "numeric",
+          "startIndex": 92,
           "required": true,
-          "description": "Quality Handling Unit (must match item basic UOM)"
+          "description": "Status Code (1 Under Inspection, 2 Approved, 3 Rejected)"
         },
         {
           "name": "STDI",

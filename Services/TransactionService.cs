@@ -88,7 +88,7 @@ namespace Movex.API.Services
             // Build transaction string
             string transactionString = _stringBuilder.BuildTransactionString(txDef, fieldValues);
             
-            _logger.LogDebug("Transaction string built (length={Length})", transactionString.Length);
+            _logger.LogInformation("Transaction string built (length={Length}): {TransactionString}", transactionString.Length, transactionString);
 
             PooledConnection? pooled = null;
             try
