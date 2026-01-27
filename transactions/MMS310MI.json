@@ -118,8 +118,17 @@
           "description": "Physical Inventory Date (YYYYMMDD format)"
         },
         {
-          "name": "BREM",
+          "name": "BREF",
           "position": 8,
+          "length": 12,
+          "type": "text",
+          "startIndex": 138,
+          "required": false,
+          "description": "Lot Reference 1 (MI absolute position 138-149)"
+        },
+        {
+          "name": "BREM",
+          "position": 9,
           "length": 10,
           "type": "text",
           "startIndex": 162,
