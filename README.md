@@ -112,7 +112,7 @@ M3:DEFAULT_COMPANY = 300
 
 ### 3. Configure Transaction Definitions
 
-Transaction configurations are stored in `transactions/` directory. No changes needed for initial setup—**MMS200MI**, **MMS310MI**, and **MMS003** are pre-configured.
+Transaction configurations are stored in `transactions/` directory. No changes needed for initial setup—**MMS175MI**, **MMS200MI**, **MMS310MI**, and **MMS003** are pre-configured.
 
 To add new transactions, create/edit JSON files in `transactions/`:
 
@@ -672,6 +672,13 @@ Transactions can specify the HTTP method in their JSON config. If a transaction 
 ### Security/Admin Endpoints
 - `GET /api/security/api-key/status` — Check if API key is configured (no key value revealed)
 - `POST /api/security/api-key/rotate` — *(admin-only, Development)* Rotate primary API key
+
+### MMS175MI - Movement (Change Location)
+- `POST /api/mms175mi/update` — Transfer item between warehouse locations
+  - **Parameters**: `WHLO` (warehouse), `ITNO` (item), `WHSL` (from location), `TWSL` (to location), `TRQT` (quantity)
+  - **Optional**: `BANO` (batch/lot), `CAMU` (container)
+  - **Example**: Transfer 10 units of item DC210055 from location D07AA5 to D08BB2
+  - Full documentation: [docs/MMS175MI.md](docs/MMS175MI.md)
 
 ### Business Workflows
 - `POST /api/workflows/StockManagement` — MES Stock Management System (SMS) workflow

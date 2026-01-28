@@ -35,14 +35,17 @@ namespace Movex.API.Controllers
 
         /// <summary>
         /// Check if M3 response indicates success (starts with "OK") or failure (starts with "NOK")
+        /// Extracts MSID (error code) and MSDT (error details) from parsed responses
         /// </summary>
-        private bool IsM3ResponseSuccessful(object? response, out string? errorMessage)
+        private bool IsM3ResponseSuccessful(object? response, out string? errorMessage, out string? errorCode)
         {
             errorMessage = null;
+            errorCode = null;
             
             if (response == null)
             {
                 errorMessage = "No response from M3";
+                errorCode = "M3_NULL_RESPONSE";
                 return false;
             }
             
@@ -53,12 +56,41 @@ namespace Movex.API.Controllers
                 {
                     // Extract error message after "NOK "
                     errorMessage = rawResponse.Length > 4 ? rawResponse.Substring(4).Trim() : "Transaction failed";
+                    errorCode = "M3_NOK_RESPONSE";
                     return false;
                 }
                 return rawResponse.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
             }
             
-            // For parsed responses (Dictionary), assume success if no exception was thrown
+            // For parsed responses (Dictionary), check for MSID field
+            if (response is Dictionary<string, object> parsedResponse)
+            {
+                if (parsedResponse.TryGetValue("MSID", out var msidObj))
+                {
+                    string? msid = msidObj?.ToString()?.Trim();
+                    
+                    // MSID of "000" or empty typically indicates success
+                    if (string.IsNullOrEmpty(msid) || msid.Equals("000", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                    
+                    // Extract error details from MSDT field if present
+                    if (parsedResponse.TryGetValue("MSDT", out var msdtObj))
+                    {
+                        errorMessage = msdtObj?.ToString()?.Trim() ?? "M3 transaction failed";
+                    }
+                    else
+                    {
+                        errorMessage = "M3 transaction failed";
+                    }
+                    
+                    errorCode = msid;
+                    return false;
+                }
+            }
+            
+            // For parsed responses without MSID, assume success if no exception was thrown
             return true;
         }
 
@@ -137,7 +169,7 @@ namespace Movex.API.Controllers
                 object updateData = updateResponse ?? (object)new { message = "Update executed" };
 
                 // Check if M3 response indicates success
-                bool isSuccess = IsM3ResponseSuccessful(updateResponse ?? updateData, out string? m3Error);
+                bool isSuccess = IsM3ResponseSuccessful(updateResponse ?? updateData, out string? m3Error, out string? m3ErrorCode);
                 
                 if (!isSuccess)
                 {
@@ -269,7 +301,7 @@ namespace Movex.API.Controllers
                 object updateData = updateResponse ?? (object)new { message = "Stock updated" };
 
                 // Check if M3 response indicates success
-                bool isSuccess = IsM3ResponseSuccessful(updateResponse ?? updateData, out string? m3Error);
+                bool isSuccess = IsM3ResponseSuccessful(updateResponse ?? updateData, out string? m3Error, out string? m3ErrorCode);
                 
                 if (!isSuccess)
                 {
@@ -507,7 +539,7 @@ namespace Movex.API.Controllers
                 };
 
                 // Check if M3 response indicates success
-                bool isSuccess = IsM3ResponseSuccessful(response, out string? m3Error);
+                bool isSuccess = IsM3ResponseSuccessful(response, out string? m3Error, out string? m3ErrorCode);
                 
                 if (!isSuccess)
                 {
@@ -584,7 +616,7 @@ namespace Movex.API.Controllers
                 };
 
                 // Check if M3 response indicates success
-                bool isSuccess = IsM3ResponseSuccessful(response, out string? m3Error);
+                bool isSuccess = IsM3ResponseSuccessful(response, out string? m3Error, out string? m3ErrorCode);
                 
                 if (!isSuccess)
                 {
@@ -613,6 +645,164 @@ namespace Movex.API.Controllers
                 return StatusCode(500, new { success = false, error = ex.Message, program, transaction });
             }
         }
+
+        #region MMS175MI - Movement (Change Location)
+
+        /// <summary>
+        /// MMS175MI - Update (Change item location)
+        /// Transfers item quantity from one location to another within same warehouse
+        /// </summary>
+        [HttpPost("mms175mi/update")]
+        public async Task<IActionResult> MMS175MI_Update([FromBody] Dictionary<string, object> request)
+        {
+            try
+            {
+                var company = _configuration["M3:DEFAULT_COMPANY"] ?? "300";
+
+                // Extract required fields
+                string? cono = request.ContainsKey("CONO") ? request["CONO"]?.ToString() : company;
+                string? whlo = request.ContainsKey("WHLO") ? request["WHLO"]?.ToString() : null;
+                string? itno = request.ContainsKey("ITNO") ? request["ITNO"]?.ToString() : null;
+                string? twsl = request.ContainsKey("TWSL") ? request["TWSL"]?.ToString() : null;
+                string? trqt = request.ContainsKey("TRQT") ? request["TRQT"]?.ToString() : null;
+                string? whsl = request.ContainsKey("WHSL") ? request["WHSL"]?.ToString() : null;
+                string bano = request.ContainsKey("BANO") ? request["BANO"]?.ToString() ?? "" : "";
+                string camu = request.ContainsKey("CAMU") ? request["CAMU"]?.ToString() ?? "" : "";
+
+                // Validate required fields
+                var missingFields = new Dictionary<string, bool>
+                {
+                    { "WHLO", string.IsNullOrWhiteSpace(whlo) },
+                    { "ITNO", string.IsNullOrWhiteSpace(itno) },
+                    { "TWSL", string.IsNullOrWhiteSpace(twsl) },
+                    { "TRQT", string.IsNullOrWhiteSpace(trqt) },
+                    { "WHSL", string.IsNullOrWhiteSpace(whsl) }
+                };
+
+                var missingFieldsList = missingFields.Where(f => f.Value).Select(f => f.Key).ToList();
+                if (missingFieldsList.Any())
+                {
+                    _logger.LogWarning("[MMS175MI_Update] Missing required fields: {MissingFields}", string.Join(", ", missingFieldsList));
+                    return BadRequest(new
+                    {
+                        success = false,
+                        errorCode = "VALIDATION_MISSING_FIELDS",
+                        error = "Required fields missing",
+                        missingFields = missingFieldsList,
+                        fieldDescriptions = new
+                        {
+                            WHLO = "From warehouse (3 chars)",
+                            ITNO = "Item number (1-15 chars)",
+                            TWSL = "To location (1-10 chars)",
+                            TRQT = "Transfer quantity (positive decimal)",
+                            WHSL = "From location (1-10 chars)"
+                        },
+                        timestamp = DateTime.UtcNow.ToString("o")
+                    });
+                }
+
+                // Validate quantity is numeric and positive
+                if (!decimal.TryParse(trqt, out decimal quantity) || quantity <= 0)
+                {
+                    _logger.LogWarning("[MMS175MI_Update] Invalid quantity value: {TRQT}", trqt);
+                    return BadRequest(new
+                    {
+                        success = false,
+                        errorCode = "VALIDATION_INVALID_QUANTITY",
+                        error = "TRQT (quantity) must be a positive number",
+                        provided = trqt,
+                        timestamp = DateTime.UtcNow.ToString("o")
+                    });
+                }
+
+                _logger.LogInformation("[MMS175MI_Update] Processing location change: ITNO={ITNO}, WHLO={WHLO}, WHSL={WHSL} -> TWSL={TWSL}, QTY={TRQT}", 
+                    itno, whlo, whsl, twsl, quantity);
+
+                var fields = new Dictionary<string, string>
+                {
+                    { "CONO", cono },
+                    { "WHLO", whlo },
+                    { "ITNO", itno },
+                    { "TWSL", twsl },
+                    { "TRQT", trqt },
+                    { "WHSL", whsl },
+                    { "BANO", bano ?? "" },
+                    { "CAMU", camu ?? "" }
+                };
+
+                var response = await _service.ExecuteTransactionAsync("MMS175MI", "Update", fields) as Dictionary<string, object>;
+
+                // Check if M3 response indicates success, extract error code if NOK
+                bool isSuccess = IsM3ResponseSuccessful(response, out string? m3Error, out string? errorCode);
+
+                if (!isSuccess)
+                {
+                    _logger.LogWarning("[MMS175MI_Update] M3 returned NOK response - Code: {ErrorCode}, Message: {Error}", errorCode, m3Error);
+                    return StatusCode(422, new
+                    {
+                        success = false,
+                        errorCode = errorCode ?? "M3_ERROR",
+                        error = m3Error ?? "Location change failed",
+                        program = "MMS175MI",
+                        transaction = "Update",
+                        details = new
+                        {
+                            itemNumber = itno,
+                            fromWarehouse = whlo,
+                            fromLocation = whsl,
+                            toLocation = twsl,
+                            requestedQuantity = quantity
+                        },
+                        timestamp = DateTime.UtcNow.ToString("o")
+                    });
+                }
+
+                object responseData = response ?? (object)new { message = "Location change completed" };
+
+                _logger.LogInformation("[MMS175MI_Update] Location change completed successfully for ITNO={ITNO}, moved {QTY} units from {FROM_LOC} to {TO_LOC}",
+                    itno, quantity, whsl, twsl);
+
+                return Ok(new
+                {
+                    success = true,
+                    program = "MMS175MI",
+                    transaction = "Update",
+                    data = new
+                    {
+                        itemNumber = itno,
+                        fromWarehouse = whlo,
+                        fromLocation = whsl,
+                        toLocation = twsl,
+                        quantity = quantity,
+                        lot = bano,
+                        container = camu,
+                        m3ErrorCode = "000",
+                        m3Response = responseData
+                    },
+                    timestamp = DateTime.UtcNow.ToString("o")
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[MMS175MI_Update] Unexpected error: {Message}", ex.Message);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    errorCode = "SYSTEM_ERROR",
+                    error = "An unexpected error occurred while processing the location change",
+                    details = new
+                    {
+                        exceptionType = ex.GetType().Name,
+                        message = ex.Message,
+                        timestamp = DateTime.UtcNow.ToString("o")
+                    },
+                    program = "MMS175MI",
+                    transaction = "Update"
+                });
+            }
+        }
+
+        #endregion
 
     }
 }
