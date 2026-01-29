@@ -1,0 +1,97 @@
+{
+  "program": "MMS175MI",
+  "library": "MVXCOBJ",
+  "description": "Movement - Change Location (Update transaction only)",
+  "transactions": [
+    {
+      "name": "Update",
+      "description": "Update/change item location (movement transaction)",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "WHLO",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "From Warehouse"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number"
+        },
+        {
+          "name": "TWSL",
+          "position": 4,
+          "length": 10,
+          "type": "text",
+          "required": true,
+          "description": "To Location"
+        },
+        {
+          "name": "TRQT",
+          "position": 5,
+          "length": 11,
+          "type": "numeric",
+          "required": true,
+          "description": "Transfer Quantity"
+        },
+        {
+          "name": "WHSL",
+          "position": 6,
+          "length": 10,
+          "type": "text",
+          "required": true,
+          "description": "From Location"
+        },
+        {
+          "name": "BANO",
+          "position": 7,
+          "length": 20,
+          "type": "text",
+          "required": false,
+          "description": "Batch/Lot Number"
+        },
+        {
+          "name": "CAMU",
+          "position": 8,
+          "length": 20,
+          "type": "text",
+          "required": false,
+          "description": "Container/Unit"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "position": 1,
+          "length": 7,
+          "type": "text",
+          "startIndex": 16,
+          "description": "Message ID (error code if any)"
+        },
+        {
+          "name": "MSDT",
+          "position": 2,
+          "length": 100,
+          "type": "text",
+          "startIndex": 23,
+          "description": "Message data/error details"
+        }
+      ]
+    }
+  ]
+}
