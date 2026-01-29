@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$ProjectPath = Join-Path (Join-Path $PSScriptRoot '..') 'MMS200MI.API.csproj'
+$ProjectPath = Join-Path (Join-Path $PSScriptRoot '..') 'Movex.API.csproj'
 if (-not (Test-Path -LiteralPath $ProjectPath)) {
     Write-Error "Project file not found: $ProjectPath"
     exit 1
