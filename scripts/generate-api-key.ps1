@@ -47,7 +47,7 @@ if ($ShowOnly) {
 
 # Store in User Secrets
 Write-Host "Setting secret '$SecretName' for project: $ProjectPath" -ForegroundColor Cyan
-$setCmd = "dotnet user-secrets set `"$SecretName`" `"$key`" --project `"$ProjectPath`""
+
 
 # Use Start-Process for better error handling on quoting
 $psi = New-Object System.Diagnostics.ProcessStartInfo
