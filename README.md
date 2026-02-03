@@ -5,6 +5,30 @@ ASP.NET Core REST API for M3 MOVEX using a pure managed socket client (no mvxsoc
 
 Tested on .NET 8.
 
+## 🎯 Skills-Based Architecture (NEW!)
+
+This project now uses a **centralized skills-based architecture** that enables reusable capabilities across all projects under `C:\Projects\`.
+
+### Quick Links
+- **📖 Implementation Summary**: [docs/IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md) - Start here!
+- **🏗️ Architecture Guide**: [docs/CENTRALIZED_SKILLS_ARCHITECTURE.md](docs/CENTRALIZED_SKILLS_ARCHITECTURE.md)
+- **🚀 Implementation Guide**: [docs/SKILLS_IMPLEMENTATION_GUIDE.md](docs/SKILLS_IMPLEMENTATION_GUIDE.md)
+- **🤖 Agent Definition**: [.github/agents/expert-movex-dotnet.agent.md](.github/agents/expert-movex-dotnet.agent.md)
+
+### Setup Centralized Skills
+```powershell
+# Run once to create C:\Projects\.github\skills structure
+.\scripts\setup-centralized-skills.ps1
+```
+
+**Benefits**:
+- ✅ Skills shared across ALL projects (MOVEX, data migration, custom apps, infrastructure)
+- ✅ Tribal knowledge captured and version controlled
+- ✅ AI agents have consistent domain context
+- ✅ IFS migration readiness built-in
+
+---
+
 ## Features
 
 ✅ **Multi-Program Support** - Add new M3 programs via JSON config (no code changes)  
