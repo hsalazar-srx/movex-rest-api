@@ -54,7 +54,6 @@ namespace Movex.API.Controllers
             {
                 if (rawResponse.StartsWith("NOK", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Extract error message after "NOK "
                     errorMessage = rawResponse.Length > 4 ? rawResponse.Substring(4).Trim() : "Transaction failed";
                     errorCode = "M3_NOK_RESPONSE";
                     return false;
@@ -82,20 +81,37 @@ namespace Movex.API.Controllers
                     }
                     else
                     {
-                        errorMessage = "M3 transaction failed";
+                        errorMessage = $"M3 transaction failed with error code: {msid}";
                     }
                     
                     errorCode = msid;
                     return false;
                 }
+                
+                // NEW: If no MSID but response is empty, treat as failure
+                if (parsedResponse.Count == 0)
+                {
+                    errorMessage = "M3 returned empty response - transaction may have failed";
+                    errorCode = "M3_EMPTY_RESPONSE";
+                    _logger.LogWarning("M3 returned empty parsed response - this may indicate a rejected transaction");
+                    return false;
+                }
             }
             
-            // For parsed responses without MSID, assume success if no exception was thrown
-            return true;
+            // CHANGED: Log the actual response type and don't assume success
+            _logger.LogWarning("M3 response has no MSID field - cannot verify transaction success. Response type: {Type}, Content: {Content}", 
+                response.GetType().Name,
+                System.Text.Json.JsonSerializer.Serialize(response));
+            
+            // IMPORTANT: Return false here - don't assume success!
+            // The transaction likely failed silently
+            errorMessage = "M3 returned response without MSID field - unable to confirm success";
+            errorCode = "M3_NO_MSID_FIELD";
+            return false;
         }
-
         /// <summary>
         /// Validate item and adjust stock in a single server-side flow (Option A)
+        /// Validates item first, then delegates to the dynamic MMS310MI/Update endpoint
         /// </summary>
         [HttpPost("workflows/AdjustStockWithValidation")]
         public async Task<IActionResult> AdjustStockWithValidation([FromBody] Dictionary<string, object> request)
@@ -104,19 +120,15 @@ namespace Movex.API.Controllers
             {
                 var company = _configuration["M3:DEFAULT_COMPANY"] ?? "300";
                 
-                // Extract inputs
-            string? itno = request.ContainsKey("ITNO") ? request["ITNO"]?.ToString() : null;
-            string? whlo = request.ContainsKey("WHLO") ? request["WHLO"]?.ToString() : null;
-            string? whsl = request.ContainsKey("WHSL") ? request["WHSL"]?.ToString() : null;
-            string? stqi = request.ContainsKey("STQI") ? request["STQI"]?.ToString() : null;
-            string? stagValue = request.ContainsKey("STAG") ? request["STAG"]?.ToString() : null;
-            string? stag = string.IsNullOrWhiteSpace(stagValue) ? "2" : stagValue; // Default to "2" (Approved)
-            string? stdi = request.ContainsKey("STDI") && !string.IsNullOrWhiteSpace(request["STDI"]?.ToString())
-                ? request["STDI"]?.ToString()
-                : DateTime.Now.ToString("yyyyMMdd"); // Default to current date
-            string? brem = request.ContainsKey("BREM") ? request["BREM"]?.ToString() : "";
+                // Extract inputs for validation
+                string? itno = request.ContainsKey("ITNO") ? request["ITNO"]?.ToString() : null;
+                string? whlo = request.ContainsKey("WHLO") ? request["WHLO"]?.ToString() : null;
+                string? whsl = request.ContainsKey("WHSL") ? request["WHSL"]?.ToString() : null;
+                string? stqi = request.ContainsKey("STQI") ? request["STQI"]?.ToString() : null;
 
-                if (string.IsNullOrWhiteSpace(itno) || string.IsNullOrWhiteSpace(whlo) || string.IsNullOrWhiteSpace(whsl) || string.IsNullOrWhiteSpace(stqi))
+                // Validate required fields
+                if (string.IsNullOrWhiteSpace(itno) || string.IsNullOrWhiteSpace(whlo) || 
+                    string.IsNullOrWhiteSpace(whsl) || string.IsNullOrWhiteSpace(stqi))
                 {
                     return BadRequest(new
                     {
@@ -125,6 +137,14 @@ namespace Movex.API.Controllers
                         provided = new { ITNO = itno, WHLO = whlo, WHSL = whsl, STQI = stqi }
                     });
                 }
+
+                // Apply defaults for optional fields
+                string? stagValue = request.ContainsKey("STAG") ? request["STAG"]?.ToString() : null;
+                string stag = string.IsNullOrWhiteSpace(stagValue) ? "2" : stagValue; // Default to "2" (Approved)
+                
+                string? stdi = request.ContainsKey("STDI") && !string.IsNullOrWhiteSpace(request["STDI"]?.ToString())
+                    ? request["STDI"]?.ToString()
+                    : DateTime.Now.ToString("yyyyMMdd"); // Default to current date
 
                 // Validate STAG (Item Status: 1=Under Inspection, 2=Approved, 3=Rejected)
                 if (!new[] { "1", "2", "3" }.Contains(stag))
@@ -137,10 +157,16 @@ namespace Movex.API.Controllers
                     });
                 }
 
-                // 1) Validate item status/type via ItemValidationService
+                _logger.LogInformation("[AdjustStockWithValidation] Processing: ITNO={ITNO}, WHLO={WHLO}, WHSL={WHSL}, STQI={STQI}, Company={CONO}", 
+                    itno, whlo, whsl, stqi, company);
+
+                // Step 1: Validate item status/type via ItemValidationService
                 var validation = await _validationService.ValidateItemAsync(company, itno);
                 if (!validation.IsValid)
                 {
+                    _logger.LogWarning("[AdjustStockWithValidation] Validation failed: {ErrorCode} - {ErrorMessage}", 
+                        validation.ErrorCode, validation.ErrorMessage);
+                    
                     return StatusCode(422, new
                     {
                         success = false,
@@ -151,47 +177,95 @@ namespace Movex.API.Controllers
                     });
                 }
 
-                // 2) Adjust stock via MMS310MI.Update (using configured company)
-                var updateFields = new Dictionary<string, string>
+                _logger.LogInformation("[AdjustStockWithValidation] Item validated successfully: STAT={STAT}, ITTY={ITTY}", 
+                    validation.Status, validation.ItemType);
+
+                // Step 2: Build request for MMS310MI.Update with all fields (including defaults)
+                var updateRequest = new Dictionary<string, object>
                 {
                     { "CONO", company },
-                    { "WHLO", whlo ?? string.Empty },
-                    { "ITNO", itno ?? string.Empty },
-                    { "WHSL", whsl ?? string.Empty },
-                    { "STQI", stqi ?? string.Empty },
-                    { "STAG", stag ?? "2" },
-                    { "STDI", stdi ?? DateTime.Now.ToString("yyyyMMdd") },
-                    { "BREM", brem ?? string.Empty }
+                    { "WHLO", whlo! },
+                    { "ITNO", itno! },
+                    { "WHSL", whsl! },
+                    { "STQI", stqi! },
+                    { "STAG", stag },
+                    { "STDI", stdi! }
                 };
 
-                var updateResponse = await _service.ExecuteTransactionAsync("MMS310MI", "Update", updateFields) as Dictionary<string, object>;
-
-                object updateData = updateResponse ?? (object)new { message = "Update executed" };
-
-                // Check if M3 response indicates success
-                bool isSuccess = IsM3ResponseSuccessful(updateResponse ?? updateData, out string? m3Error, out string? m3ErrorCode);
-                
-                if (!isSuccess)
+                // Add optional traceability fields if provided
+                if (request.ContainsKey("BREF") && !string.IsNullOrWhiteSpace(request["BREF"]?.ToString()))
                 {
-                    _logger.LogWarning("[AdjustStockWithValidation] M3 returned NOK: {Error}", m3Error);
-                    return StatusCode(422, new
+                    updateRequest["BREF"] = request["BREF"]!;
+                }
+                if (request.ContainsKey("BREM") && !string.IsNullOrWhiteSpace(request["BREM"]?.ToString()))
+                {
+                    updateRequest["BREM"] = request["BREM"]!;
+                }
+
+                _logger.LogInformation("[AdjustStockWithValidation] Delegating to dynamic MMS310MI/Update endpoint");
+
+                // Step 3: Call the dynamic ExecuteTransaction endpoint internally
+                // This will handle field validation, QLUN retrieval, padding, and proper M3 response parsing
+                var updateResult = await ExecuteTransaction("MMS310MI", "Update", updateRequest);
+
+                // Step 4: Check if the update succeeded
+                if (updateResult is OkObjectResult okResult)
+                {
+                    // Extract the response data
+                    var responseValue = okResult.Value;
+                    
+                    // Use reflection to get the 'data' property from the anonymous type
+                    var dataProperty = responseValue?.GetType().GetProperty("data");
+                    var updateData = dataProperty?.GetValue(responseValue);
+
+                    _logger.LogInformation("[AdjustStockWithValidation] Stock updated successfully for item {ITNO}", itno);
+
+                    return Ok(new
+                    {
+                        success = true,
+                        program = "MMS310MI",
+                        transaction = "Update",
+                        validation = new { stat = validation.Status, itty = validation.ItemType },
+                        data = updateData,
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+                else if (updateResult is StatusCodeResult statusCodeResult)
+                {
+                    // Handle status code-only responses (unlikely for ExecuteTransaction)
+                    _logger.LogWarning("[AdjustStockWithValidation] MMS310MI/Update returned status code {StatusCode}", 
+                        statusCodeResult.StatusCode);
+                    
+                    return StatusCode(statusCodeResult.StatusCode, new
                     {
                         success = false,
-                        error = m3Error ?? "Transaction failed",
+                        error = "Stock update failed with no error details",
                         program = "MMS310MI",
                         transaction = "Update"
                     });
                 }
-
-                return Ok(new
+                else if (updateResult is ObjectResult objectResult)
                 {
-                    success = true,
-                    program = "MMS310MI",
-                    transaction = "Update",
-                    validation = new { stat = validation.Status, itty = validation.ItemType },
-                    data = updateData,
-                    timestamp = DateTime.UtcNow
-                });
+                    // Handle error responses (422, 500, etc.)
+                    _logger.LogWarning("[AdjustStockWithValidation] MMS310MI/Update failed with status {StatusCode}", 
+                        objectResult.StatusCode);
+                    
+                    return StatusCode(objectResult.StatusCode ?? 500, objectResult.Value);
+                }
+                else
+                {
+                    // Unexpected result type
+                    _logger.LogError("[AdjustStockWithValidation] Unexpected result type from ExecuteTransaction: {Type}", 
+                        updateResult?.GetType().Name ?? "null");
+                    
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        error = "Unexpected error during stock update",
+                        program = "MMS310MI",
+                        transaction = "Update"
+                    });
+                }
             }
             catch (Exception ex)
             {
@@ -203,6 +277,7 @@ namespace Movex.API.Controllers
         /// <summary>
         /// MES Stock Management System (SMS) - Requirement 1
         /// Validates item, checks warehouse balance, and updates stock
+        /// Delegates to dynamic transaction endpoints for consistent behavior
         /// </summary>
         [HttpPost("workflows/StockManagement")]
         public async Task<IActionResult> StockManagement([FromBody] Dictionary<string, object> request)
@@ -216,64 +291,55 @@ namespace Movex.API.Controllers
                 string? whlo = request.ContainsKey("WHLO") ? request["WHLO"]?.ToString() : null;
                 string? whsl = request.ContainsKey("WHSL") ? request["WHSL"]?.ToString()?.PadRight(10) : null;
                 string? newQty = request.ContainsKey("STQI") ? request["STQI"]?.ToString() : null;
-                string brem = "MES SMS"; // Fixed remark per requirement
 
-                if (string.IsNullOrWhiteSpace(itno) || string.IsNullOrWhiteSpace(whlo) || string.IsNullOrWhiteSpace(whsl) || string.IsNullOrWhiteSpace(newQty))
+                if (string.IsNullOrWhiteSpace(itno) || string.IsNullOrWhiteSpace(whlo) || 
+                    string.IsNullOrWhiteSpace(whsl) || string.IsNullOrWhiteSpace(newQty))
                 {
                     return BadRequest(new { success = false, error = "Required fields: ITNO, WHLO, WHSL, STQI" });
                 }
 
-                _logger.LogInformation("[StockManagement] Processing: ITNO={ITNO}, WHLO={WHLO}, WHSL={WHSL}, STQI={STQI}, Company={CONO}", itno, whlo, whsl, newQty, company);
+                _logger.LogInformation("[StockManagement] Processing: ITNO={ITNO}, WHLO={WHLO}, WHSL={WHSL}, STQI={STQI}, Company={CONO}", 
+                    itno, whlo, whsl, newQty, company);
 
                 // Step 1: Validate item (STAT 20/50, ITTY 030)
                 var validation = await _validationService.ValidateItemAsync(company, itno);
                 if (!validation.IsValid)
                 {
-                    _logger.LogWarning("[StockManagement] Validation failed: {ErrorCode} - {ErrorMessage}", validation.ErrorCode, validation.ErrorMessage);
+                    _logger.LogWarning("[StockManagement] Validation failed: {ErrorCode} - {ErrorMessage}", 
+                        validation.ErrorCode, validation.ErrorMessage);
                     return StatusCode(422, new { success = false, errorCode = validation.ErrorCode, error = validation.ErrorMessage });
                 }
 
-                // Step 1b: Get item unit of measure (UNMS) from MMS200MI.GetItmBasic
-                var itemBasicFields = new Dictionary<string, string>
+                // Step 2: Check warehouse balance using ExecuteTransaction
+                var balanceRequest = new Dictionary<string, object>
                 {
                     { "CONO", company },
-                    { "ITNO", itno ?? string.Empty }
-                };
-                
-                var itemBasicResponse = await _service.ExecuteTransactionAsync("MMS200MI", "GetItmBasic", itemBasicFields) as Dictionary<string, object>;
-                string qlun = "EA"; // Default fallback
-                
-                if (itemBasicResponse != null && itemBasicResponse.TryGetValue("UNMS", out var unmsObj))
-                {
-                    qlun = unmsObj?.ToString()?.Trim() ?? "EA";
-                    _logger.LogInformation("[StockManagement] Retrieved UNMS={UNMS} for item {ITNO}", qlun, itno);
-                }
-                else
-                {
-                    _logger.LogWarning("[StockManagement] Could not retrieve UNMS for item {ITNO}, using default EA", itno);
-                }
-
-                // Step 2: Check warehouse balance
-                var balanceFields = new Dictionary<string, string>
-                {
-                    { "CONO", company },
-                    { "WHLO", whlo ?? string.Empty },
-                    { "ITNO", itno ?? string.Empty }
+                    { "WHLO", whlo },
+                    { "ITNO", itno }
                 };
 
-                var balanceResponse = await _service.ExecuteTransactionAsync("MMS200MI", "GetItmWhsBal", balanceFields) as Dictionary<string, object>;
-                if (balanceResponse == null)
+                _logger.LogInformation("[StockManagement] Checking warehouse balance via MMS200MI/GetItmWhsBal");
+                var balanceResult = await ExecuteTransaction("MMS200MI", "GetItmWhsBal", balanceRequest);
+                
+                if (balanceResult is not OkObjectResult balanceOk)
                 {
-                    _logger.LogError("[StockManagement] GetItmWhsBal returned empty response");
+                    _logger.LogError("[StockManagement] GetItmWhsBal failed");
                     return StatusCode(502, new { success = false, error = "Unable to retrieve warehouse balance" });
                 }
 
-                decimal onHandBalance = balanceResponse.TryGetValue("STQT", out var stqtObj) ? Convert.ToDecimal(stqtObj) : 0;
+                var balanceResponseValue = balanceOk.Value;
+                var balanceDataProperty = balanceResponseValue?.GetType().GetProperty("data");
+                var balanceData = balanceDataProperty?.GetValue(balanceResponseValue) as Dictionary<string, object>;
+
+                decimal onHandBalance = balanceData != null && balanceData.TryGetValue("STQT", out var stqtObj) 
+                    ? Convert.ToDecimal(stqtObj) : 0;
                 decimal newQtyDecimal = decimal.Parse(newQty);
 
                 if (onHandBalance < newQtyDecimal)
                 {
-                    _logger.LogWarning("[StockManagement] Insufficient stock: On-hand={OnHand}, Requested={Requested}", onHandBalance, newQtyDecimal);
+                    _logger.LogWarning("[StockManagement] Insufficient stock: On-hand={OnHand}, Requested={Requested}", 
+                        onHandBalance, newQtyDecimal);
+                    
                     return StatusCode(422, new
                     {
                         success = false,
@@ -284,49 +350,65 @@ namespace Movex.API.Controllers
                     });
                 }
 
-                // Step 3: Update stock via MMS310MI.Update with UNMS as QLUN
-                var updateFields = new Dictionary<string, string>
+                // Step 3: Update stock using ExecuteTransaction with optional traceability fields
+                var updateRequest = new Dictionary<string, object>
                 {
                     { "CONO", company },
-                    { "WHLO", whlo ?? string.Empty },
-                    { "ITNO", itno ?? string.Empty },
-                    { "WHSL", whsl ?? string.Empty },
-                    { "STQI", newQty ?? string.Empty },
-                    { "QLUN", qlun },
-                    { "BREM", brem }
+                    { "WHLO", whlo },
+                    { "ITNO", itno },
+                    { "WHSL", whsl },
+                    { "STQI", newQty }
                 };
 
-                var updateResponse = await _service.ExecuteTransactionAsync("MMS310MI", "Update", updateFields) as Dictionary<string, object>;
-
-                object updateData = updateResponse ?? (object)new { message = "Stock updated" };
-
-                // Check if M3 response indicates success
-                bool isSuccess = IsM3ResponseSuccessful(updateResponse ?? updateData, out string? m3Error, out string? m3ErrorCode);
-                
-                if (!isSuccess)
+                // Add traceability fields - prefer BREF if both provided, but support both
+                if (request.ContainsKey("BREF") && !string.IsNullOrWhiteSpace(request["BREF"]?.ToString()))
                 {
-                    _logger.LogWarning("[StockManagement] M3 returned NOK: {Error}", m3Error);
-                    return StatusCode(422, new
-                    {
-                        success = false,
-                        error = m3Error ?? "Transaction failed",
-                        program = "MMS310MI",
-                        transaction = "Update"
-                    });
+                    updateRequest["BREF"] = request["BREF"]!;
+                }
+                else if (request.ContainsKey("BREM") && !string.IsNullOrWhiteSpace(request["BREM"]?.ToString()))
+                {
+                    updateRequest["BREM"] = request["BREM"]!;
+                }
+                else
+                {
+                    // Default to "MES SMS" if neither provided
+                    updateRequest["BREF"] = "MES SMS";
                 }
 
-                _logger.LogInformation("[StockManagement] Stock updated successfully for item {ITNO}", itno);
+                _logger.LogInformation("[StockManagement] Delegating to dynamic MMS310MI/Update endpoint");
+                var updateResult = await ExecuteTransaction("MMS310MI", "Update", updateRequest);
 
-                return Ok(new
+                if (updateResult is OkObjectResult updateOk)
                 {
-                    success = true,
-                    program = "MMS310MI",
-                    transaction = "Update",
-                    validation = new { stat = validation.Status, itty = validation.ItemType },
-                    balanceCheck = new { onHandBalance, newQuantity = newQtyDecimal },
-                    data = updateData,
-                    timestamp = DateTime.UtcNow
-                });
+                    var updateResponseValue = updateOk.Value;
+                    var updateDataProperty = updateResponseValue?.GetType().GetProperty("data");
+                    var updateData = updateDataProperty?.GetValue(updateResponseValue);
+
+                    _logger.LogInformation("[StockManagement] Stock updated successfully for item {ITNO}", itno);
+
+                    return Ok(new
+                    {
+                        success = true,
+                        program = "MMS310MI",
+                        transaction = "Update",
+                        validation = new { stat = validation.Status, itty = validation.ItemType },
+                        balanceCheck = new { onHandBalance, newQuantity = newQtyDecimal },
+                        data = updateData,
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+                else if (updateResult is ObjectResult errorResult)
+                {
+                    _logger.LogWarning("[StockManagement] MMS310MI/Update failed with status {StatusCode}", 
+                        errorResult.StatusCode);
+                    return StatusCode(errorResult.StatusCode ?? 500, errorResult.Value);
+                }
+                else
+                {
+                    _logger.LogError("[StockManagement] Unexpected result type from ExecuteTransaction: {Type}", 
+                        updateResult?.GetType().Name ?? "null");
+                    return StatusCode(500, new { success = false, error = "Unexpected error during stock update" });
+                }
             }
             catch (Exception ex)
             {
@@ -720,12 +802,12 @@ namespace Movex.API.Controllers
 
                 var fields = new Dictionary<string, string>
                 {
-                    { "CONO", cono },
-                    { "WHLO", whlo },
-                    { "ITNO", itno },
-                    { "TWSL", twsl },
-                    { "TRQT", trqt },
-                    { "WHSL", whsl },
+                    { "CONO", cono! },
+                    { "WHLO", whlo! },
+                    { "ITNO", itno! },
+                    { "TWSL", twsl! },
+                    { "TRQT", trqt! },
+                    { "WHSL", whsl! },
                     { "BANO", bano ?? "" },
                     { "CAMU", camu ?? "" }
                 };
