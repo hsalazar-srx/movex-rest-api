@@ -77,7 +77,7 @@ namespace Movex.API.Infrastructure.TransactionBuilding
         /// </summary>
         private string BuildFieldsWithAbsolutePositioning(List<FieldConfig> fields, Dictionary<string, string> fieldValues)
         {
-            const int TransactionNameLength = 16; // Offset from start of MI command to first field (accounts for the 15-character transaction name prefix)
+            const int TransactionNameLength = 16; // Offset to first field (1-based start index includes 15-char transaction name)
 
             // Calculate total buffer size needed (accounting for transaction name offset)
             int maxPosition = 0;
