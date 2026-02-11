@@ -120,7 +120,8 @@ namespace Movex.API.Services
                     new Polly.Context { { "logger", _logger } });
 
 
-                string trimmedResponse = rawResponse.TrimStart();
+                var safeRawResponse = rawResponse ?? string.Empty;
+                string trimmedResponse = safeRawResponse.TrimStart();
                 bool startsWithOk = trimmedResponse.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
                 bool startsWithNok = trimmedResponse.StartsWith("NOK", StringComparison.OrdinalIgnoreCase);
 
@@ -135,7 +136,7 @@ namespace Movex.API.Services
                 {
                     if (txDef.ReturnsList)
                     {
-                        var parsedList = _responseParser.ParseResponseList(rawResponse, txDef.ResponseFields);
+                        var parsedList = _responseParser.ParseResponseList(safeRawResponse, txDef.ResponseFields);
                         if (startsWithOk)
                         {
                             foreach (var record in parsedList)
@@ -148,7 +149,7 @@ namespace Movex.API.Services
                     }
                     else
                     {
-                        var parsedResponse = _responseParser.ParseResponse(rawResponse, txDef.ResponseFields);
+                        var parsedResponse = _responseParser.ParseResponse(safeRawResponse, txDef.ResponseFields);
                         if (startsWithOk)
                         {
                             EnsureM3SuccessFields(parsedResponse);
@@ -158,7 +159,7 @@ namespace Movex.API.Services
                     }
                 }
 
-                _logger.LogInformation("Transaction completed successfully, response length: {Length}", rawResponse?.Length ?? 0);
+                _logger.LogInformation("Transaction completed successfully, response length: {Length}", safeRawResponse.Length);
                 return rawResponse ?? string.Empty;
             }
             catch (Exception ex)
