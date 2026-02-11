@@ -52,13 +52,16 @@ namespace Movex.API.Controllers
             // Check if response is a string (raw response)
             if (response is string rawResponse)
             {
-                if (rawResponse.StartsWith("NOK", StringComparison.OrdinalIgnoreCase))
+                var rawResponseTrimmed = rawResponse.TrimStart();
+
+                if (rawResponseTrimmed.StartsWith("NOK", StringComparison.OrdinalIgnoreCase))
                 {
-                    errorMessage = rawResponse.Length > 4 ? rawResponse.Substring(4).Trim() : "Transaction failed";
+                    errorMessage = rawResponseTrimmed.Length > 4 ? rawResponseTrimmed.Substring(4).Trim() : "Transaction failed";
                     errorCode = "M3_NOK_RESPONSE";
                     return false;
                 }
-                return rawResponse.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
+
+                return rawResponseTrimmed.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
             }
 
             if (response is List<Dictionary<string, object?>> parsedList)

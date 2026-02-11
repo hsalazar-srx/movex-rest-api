@@ -12,7 +12,7 @@ Tested on .NET 8.
 **Key Requirements:**
 - ✅ Future: Audit logs to **SQL Server** (currently file-based, migration planned)
 - ✅ Connection strings in **User Secrets** (development) or **environment variables** (IIS)
-- ✅ **TLS 1.2+** for M3 socket connections
+- ⚠️ **Network security:** Current M3 sockets use plain TCP; deploy behind TLS 1.2+ (e.g., VPN, TLS terminator, or gateway). Native in-app TLS (`SslStream`) support is planned.
 - ✅ PascalCase for C# classes, camelCase for variables
 - ⚠️ Action Required: Migrate to standard SQL Server audit schema
 
