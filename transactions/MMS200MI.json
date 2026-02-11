@@ -48,6 +48,7 @@
           "position": 3,
           "length": 30,
           "type": "text",
+          "startIndex": 33,
           "description": "Item Name"
         },
         {

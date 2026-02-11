@@ -5,6 +5,21 @@ ASP.NET Core REST API for M3 MOVEX using a pure managed socket client (no mvxsoc
 
 Tested on .NET 8.
 
+## 📋 Workspace Standards Compliance
+
+**IMPORTANT:** This project MUST comply with **[WORKSPACE_RULES.md](../../../.github/WORKSPACE_RULES.md)**.
+
+**Key Requirements:**
+- ✅ Future: Audit logs to **SQL Server** (currently file-based, migration planned)
+- ✅ Connection strings in **User Secrets** (development) or **environment variables** (IIS)
+- ⚠️ **Network security:** Current M3 sockets use plain TCP; deploy behind TLS 1.2+ (e.g., VPN, TLS terminator, or gateway). Native in-app TLS (`SslStream`) support is planned.
+- ✅ PascalCase for C# classes, camelCase for variables
+- ⚠️ Action Required: Migrate to standard SQL Server audit schema
+
+**Validation:** Run `../../../.github/scripts/validate-workspace-compliance.ps1` before deployment.
+
+---
+
 ## Features
 
 ✅ **Multi-Program Support** - Add new M3 programs via JSON config (no code changes)  

@@ -119,25 +119,47 @@ namespace Movex.API.Services
                     },
                     new Polly.Context { { "logger", _logger } });
 
-                
+
+                var safeRawResponse = rawResponse ?? string.Empty;
+                string trimmedResponse = safeRawResponse.TrimStart();
+                bool startsWithOk = trimmedResponse.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
+                bool startsWithNok = trimmedResponse.StartsWith("NOK", StringComparison.OrdinalIgnoreCase);
+
+                if (startsWithNok)
+                {
+                    _logger.LogWarning("Transaction returned NOK prefix, returning raw response for error handling");
+                    return rawResponse ?? string.Empty;
+                }
+
                 // Parse response if response fields are configured
                 if (txDef.ResponseFields?.Any() == true)
                 {
                     if (txDef.ReturnsList)
                     {
-                        var parsedList = _responseParser.ParseResponseList(rawResponse, txDef.ResponseFields);
+                        var parsedList = _responseParser.ParseResponseList(safeRawResponse, txDef.ResponseFields);
+                        if (startsWithOk)
+                        {
+                            foreach (var record in parsedList)
+                            {
+                                EnsureM3SuccessFields(record);
+                            }
+                        }
                         _logger.LogInformation("Transaction completed successfully, parsed list with {RecordCount} records", parsedList.Count);
                         return parsedList;
                     }
                     else
                     {
-                        var parsedResponse = _responseParser.ParseResponse(rawResponse, txDef.ResponseFields);
+                        var parsedResponse = _responseParser.ParseResponse(safeRawResponse, txDef.ResponseFields);
+                        if (startsWithOk)
+                        {
+                            EnsureM3SuccessFields(parsedResponse);
+                        }
                         _logger.LogInformation("Transaction completed successfully, parsed {FieldCount} response fields", parsedResponse.Count);
                         return parsedResponse;
                     }
                 }
 
-                _logger.LogInformation("Transaction completed successfully, response length: {Length}", rawResponse?.Length ?? 0);
+                _logger.LogInformation("Transaction completed successfully, response length: {Length}", safeRawResponse.Length);
                 return rawResponse ?? string.Empty;
             }
             catch (Exception ex)
@@ -172,6 +194,24 @@ namespace Movex.API.Services
 
             // Default format: MVXCOBJ/PROGRAM
             return $"MVXCOBJ/{program}";
+        }
+
+        private static void EnsureM3SuccessFields(Dictionary<string, object?> parsedResponse)
+        {
+            if (parsedResponse == null)
+            {
+                return;
+            }
+
+            if (!parsedResponse.ContainsKey("MSID"))
+            {
+                parsedResponse["MSID"] = "000";
+            }
+
+            if (!parsedResponse.ContainsKey("MSDT"))
+            {
+                parsedResponse["MSDT"] = "OK";
+            }
         }
 
         /// <summary>

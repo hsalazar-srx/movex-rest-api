@@ -14,6 +14,8 @@ namespace Movex.API
         private static readonly Encoding _encoding = Encoding.GetEncoding("ISO-8859-1");
         private Socket? _socket;
         private bool _loggedIn = false;
+        private string? _currentLibrary;
+        private string? _currentProgram;
         private bool _disposed = false;
         private const int RECEIVE_TIMEOUT = 30000; // 30 seconds
         private const int SEND_TIMEOUT = 2000; // 2 seconds
@@ -73,7 +75,23 @@ namespace Movex.API
             }
 
             _loggedIn = true;
+            _currentLibrary = library;
+            _currentProgram = program;
             Console.WriteLine("[MvxSock] ✅ Login successful");
+        }
+
+        private static (string Library, string Program) ParseApiProgram(string apiprogram)
+        {
+            if (!string.IsNullOrWhiteSpace(apiprogram) && apiprogram.Contains("/"))
+            {
+                var parts = apiprogram.Split('/');
+                if (parts.Length >= 2)
+                {
+                    return (parts[0], parts[1]);
+                }
+            }
+
+            return ("MVXCOBJ", apiprogram);
         }
 
         private async Task<string> ExecuteAsync(string command, bool checkLogin = true)
@@ -143,26 +161,28 @@ namespace Movex.API
         {
             try
             {
+                var (library, program) = ParseApiProgram(apiprogram);
+                bool requiresLogin = !_loggedIn
+                    || !string.Equals(_currentLibrary, library, StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(_currentProgram, program, StringComparison.OrdinalIgnoreCase);
+
+                if (requiresLogin)
+                {
+                    if (_loggedIn)
+                    {
+                        Console.WriteLine($"[MvxSock] Switching program context to {library}/{program}...");
+                        await CloseAsync();
+                    }
+                }
+
                 // Connect if not already connected
                 if (_socket == null || !_socket.Connected)
                 {
                     await ConnectAsync(host, port);
                 }
 
-                // Login if not already logged in
-                if (!_loggedIn)
+                if (requiresLogin)
                 {
-                    // Extract library from apiprogram if it contains a slash, otherwise use default
-                    string library = "MVXCOBJ";
-                    string program = apiprogram;
-                    
-                    if (apiprogram.Contains("/"))
-                    {
-                        var parts = apiprogram.Split('/');
-                        library = parts[0];
-                        program = parts[1];
-                    }
-
                     await LoginAsync(username, password, library, program);
                 }
 
@@ -205,6 +225,8 @@ namespace Movex.API
             }
 
             _loggedIn = false;
+            _currentLibrary = null;
+            _currentProgram = null;
             _socket = null;
         }
 
