@@ -9,6 +9,8 @@
     <UserSecretsId>13d7e86e-0c60-45bd-877c-d0dfe7850da3</UserSecretsId>
     <AssemblyName>Movex.API</AssemblyName>
     <RootNamespace>Movex.API</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -169,7 +169,7 @@ dotnet build
 dotnet run
 
 # Server starts at: http://localhost:5000
-# Swagger UI: http://localhost:5000/swagger (if enabled)
+# Swagger UI: http://localhost:5000/swagger
 ```
 
 **Expected Console Output:**
@@ -181,6 +181,23 @@ dotnet run
 [INFO] Now listening on: http://localhost:5000
 [INFO] Application started. Press Ctrl+C to shut down.
 ```
+
+### OpenAPI / Swagger
+
+Swagger is enabled in all environments:
+
+- UI: `http://localhost:5000/swagger`
+- JSON: `http://localhost:5000/swagger/v1/swagger.json`
+
+The committed spec lives at `docs/openapi.json`. To update it after API changes, run:
+
+```powershell
+./scripts/generate-openapi.ps1
+```
+
+**Windows runtime requirement:** the Swashbuckle CLI (`swagger.exe`) targets **.NET 7.0**. If you only have .NET 6/8/9 installed, install the **.NET 7.0 runtime (x64)** before running the script.
+
+See [docs/OPENAPI.md](docs/OPENAPI.md) for details.
 
 ### 6. Test the API
 
@@ -718,7 +735,7 @@ Transactions can specify the HTTP method in their JSON config. If a transaction 
 - `011` - Facility Does Not Exist
 
 ### Pool Monitoring
-- `GET /api/pool/stats` — Connection pool statistics (requires API key)
+- `GET /api/transactions/pool-stats` — Connection pool statistics (requires API key)
 
 ### Health
 - `GET /health` — Health check (no authentication required)

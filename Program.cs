@@ -13,13 +13,17 @@ using Movex.API.Infrastructure.Resilience;
 using Movex.API.Infrastructure.TransactionBuilding;
 using Movex.API.Services;
 using Movex.API.Services.Validation;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var isDev = builder.Environment.IsDevelopment();
+var isSwaggerGeneration = builder.Configuration.GetValue<bool>("Swagger:Generate")
+    || string.Equals(Environment.GetEnvironmentVariable("SWAGGER_GENERATION"), "true", StringComparison.OrdinalIgnoreCase);
 
 // Configuration: User Secrets in Development, plus Environment Variables
 if (isDev)
@@ -59,10 +63,16 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .Enrich.FromLogContext();
 });
 
-var m3Host = builder.Configuration["M3:HOST"] ?? throw new InvalidOperationException("M3:HOST is not configured");
-var m3Port = int.Parse(builder.Configuration["M3:PORT"] ?? "6300");
-var m3User = builder.Configuration["M3:USER"] ?? throw new InvalidOperationException("M3:USER is not configured");
-var m3Password = builder.Configuration["M3:PASSWORD"] ?? throw new InvalidOperationException("M3:PASSWORD is not configured");
+var m3Host = builder.Configuration["M3:HOST"]
+    ?? (isSwaggerGeneration ? "swagger" : throw new InvalidOperationException("M3:HOST is not configured"));
+var m3PortSetting = builder.Configuration["M3:PORT"];
+var m3Port = int.TryParse(m3PortSetting, out var parsedPort)
+    ? parsedPort
+    : (isSwaggerGeneration ? 0 : 6300);
+var m3User = builder.Configuration["M3:USER"]
+    ?? (isSwaggerGeneration ? "swagger" : throw new InvalidOperationException("M3:USER is not configured"));
+var m3Password = builder.Configuration["M3:PASSWORD"]
+    ?? (isSwaggerGeneration ? "swagger" : throw new InvalidOperationException("M3:PASSWORD is not configured"));
 var defaultCompany = builder.Configuration["M3:DEFAULT_COMPANY"] ?? "300";
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 
@@ -76,10 +86,20 @@ var poolOptions = new MvxConnectionPoolOptions
     ValidateOnAcquire = bool.Parse(builder.Configuration["ConnectionPool:ValidateOnAcquire"] ?? "true")
 };
 
+if (isSwaggerGeneration)
+{
+    poolOptions.MinPoolSize = 0;
+    poolOptions.MaxPoolSize = 0;
+    poolOptions.ConnectionIdleTimeoutSeconds = 1;
+    poolOptions.AcquireTimeoutSeconds = 1;
+    poolOptions.ValidateOnAcquire = false;
+}
+
 // API Key config
 builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection("ApiKeys"));
 
 Console.WriteLine($"[Config] Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"[Config] Swagger Generation Mode: {(isSwaggerGeneration ? "enabled" : "disabled")}");
 
 Console.WriteLine($"[Config] User Secrets: {(isDev ? "enabled" : "disabled (set ASPNETCORE_ENVIRONMENT=Development to use)")}");
 Console.WriteLine($"[Config] Env Vars: enabled");
@@ -92,6 +112,50 @@ Console.WriteLine($"[Config] Transaction Config: External configs loaded from 't
 
 // Add services
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Movex REST API",
+        Version = "v1",
+        Description = "Config-driven REST API for M3 MOVEX transactions and workflows."
+    });
+
+    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Description = "API key required. Use the X-API-Key header.",
+        Name = "X-API-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    options.AddSecurityDefinition("AdminKey", new OpenApiSecurityScheme
+    {
+        Description = "Admin key for rotation endpoints. Use the X-Admin-Key header.",
+        Name = "X-Admin-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
+});
 
 // Add validation services
 builder.Services.AddSingleton<IFieldValidator, FieldValidator>();
@@ -156,6 +220,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Movex REST API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.UseCors();
 
