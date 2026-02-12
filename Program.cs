@@ -22,8 +22,14 @@ using System.Reflection;
 var builder = WebApplication.CreateBuilder(args);
 
 var isDev = builder.Environment.IsDevelopment();
+var swaggerEnabled = builder.Configuration.GetValue<bool?>("Swagger:Enabled") ?? isDev;
 var isSwaggerGeneration = builder.Configuration.GetValue<bool>("Swagger:Generate")
     || string.Equals(Environment.GetEnvironmentVariable("SWAGGER_GENERATION"), "true", StringComparison.OrdinalIgnoreCase);
+
+if (isSwaggerGeneration)
+{
+    swaggerEnabled = true;
+}
 
 // Configuration: User Secrets in Development, plus Environment Variables
 if (isDev)
@@ -100,6 +106,7 @@ builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection("ApiK
 
 Console.WriteLine($"[Config] Environment: {builder.Environment.EnvironmentName}");
 Console.WriteLine($"[Config] Swagger Generation Mode: {(isSwaggerGeneration ? "enabled" : "disabled")}");
+Console.WriteLine($"[Config] Swagger UI Enabled: {(swaggerEnabled ? "enabled" : "disabled")}");
 
 Console.WriteLine($"[Config] User Secrets: {(isDev ? "enabled" : "disabled (set ASPNETCORE_ENVIRONMENT=Development to use)")}");
 Console.WriteLine($"[Config] Env Vars: enabled");
@@ -221,17 +228,20 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseSwagger();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Movex REST API v1");
-    options.RoutePrefix = "swagger";
-});
-
 app.UseCors();
 
 // API Key auth (skip health)
 app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
+
+if (swaggerEnabled)
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Movex REST API v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 app.UseRouting();
 app.MapControllers();
 

@@ -1,9 +1,11 @@
 # OpenAPI / Swagger
 
-The API exposes Swagger UI and the OpenAPI JSON document in all environments:
+The API exposes Swagger UI and the OpenAPI JSON document when enabled:
 
 - Swagger UI: `http://localhost:5000/swagger`
 - OpenAPI JSON: `http://localhost:5000/swagger/v1/swagger.json`
+
+Swagger availability is controlled by `Swagger:Enabled` (or `Swagger__Enabled` via environment variables). In production, Swagger endpoints require a valid `X-API-Key` header. In Development, Swagger is available without a key for convenience.
 
 ## Generate the committed spec
 
@@ -22,3 +24,4 @@ The Swashbuckle CLI (`swagger.exe`) targets **.NET 7.0** on Windows x64. If you 
 
 - `SWAGGER_GENERATION=true` enables spec generation mode.
 - `ASPNETCORE_ENVIRONMENT=Development` is recommended for local generation.
+- `Swagger__Enabled=true` enables Swagger UI/JSON when running in Production (requires `X-API-Key`).

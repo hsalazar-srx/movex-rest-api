@@ -10,13 +10,11 @@
 bin/
 obj/
 *.dll
-*.exe
 *.pdb
 *.cache
 *.suo
 *.user
 *.userosscache
-*.sln.docstates
 
 # Build results
 [Dd]ebug/
@@ -74,14 +72,11 @@ usersecrets.json
 logs/
 *.log
 *.log.*
-*.txt
-!README.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
 # IIS Runtime
-web.config
 *.pubxml
 *.pubxml.user
 
@@ -145,7 +140,6 @@ CHANGELOG.draft.md
 *.mdf
 *.ldf
 *.db
-*.sqlite
 *.sqlite3
 *.bak
 
@@ -197,6 +191,9 @@ $RECYCLE.BIN/
 *.exe
 *.o
 *.so
+
+# Local .NET tools
+.tools/
 
 # ============================================
 # Package Manager Lock Files
@@ -254,5 +251,6 @@ transactions/.cache/
 !docs/RUNBOOK.md
 !docs/TROUBLESHOOTING_RUNBOOK.md
 !docs/LOGGING_SETUP.md
-!docs/diagrams/
+!docs/diagrams/**
 !README.md
+!web.config

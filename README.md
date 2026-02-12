@@ -184,7 +184,7 @@ dotnet run
 
 ### OpenAPI / Swagger
 
-Swagger is enabled in all environments:
+Swagger is enabled when `Swagger:Enabled` is true (default in `appsettings.json`). In Production, Swagger endpoints require a valid `X-API-Key` header:
 
 - UI: `http://localhost:5000/swagger`
 - JSON: `http://localhost:5000/swagger/v1/swagger.json`
@@ -586,6 +586,7 @@ Provide all secrets via your platform's secret store (e.g., Key Vault/Secrets Ma
 - `ConnectionPool:MinSize`, `ConnectionPool:MaxSize` — Connection pool sizing (optional, defaults: 2 min, 10 max)
 - `ConnectionPool:IdleTimeoutSeconds` — Idle connection timeout (optional, default: 300s)
 - `AllowedOrigins` — Configure CORS; if none are set, cross-origin requests are blocked by default
+- `Swagger:Enabled` — Enable Swagger UI/JSON in production (requires `X-API-Key`)
 
 **Example: Setting Environment Variables for Production**
 
