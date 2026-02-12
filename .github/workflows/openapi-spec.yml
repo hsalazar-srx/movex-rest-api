@@ -48,4 +48,5 @@ jobs:
           git status --porcelain
           if (git diff --name-only -- docs/openapi.json) {
             Write-Error "OpenAPI spec is out of date. Run scripts/generate-openapi.ps1 and commit the updated docs/openapi.json."
+            exit 1
           }
