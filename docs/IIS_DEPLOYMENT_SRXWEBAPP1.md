@@ -253,6 +253,7 @@ Ensure your site has a binding:
 | `ApiKeys__Primary` | Generated API key | `q8VxK9...` |
 | `ApiKeys__Admin` | Admin API key | `admin-key...` |
 | `Logging__LogLevel__Default` | Log level | `Information` |
+| `Swagger__Enabled` | Enable Swagger UI/JSON | `false` (recommended) |
 
 **In PowerShell:**
 ```powershell
@@ -318,6 +319,7 @@ If IIS Manager doesn't show the Environment section or you can't run PowerShell 
      <environmentVariable name="ApiKeys__Primary" value="your-generated-api-key" />
      <environmentVariable name="ApiKeys__Admin" value="your-admin-key" />
      <environmentVariable name="Logging__LogLevel__Default" value="Information" />
+    <environmentVariable name="Swagger__Enabled" value="false" />
    </environmentVariables>
    ```
 
@@ -486,7 +488,15 @@ Ensure `web.config` has debug disabled:
 <compilation debug="false" />
 ```
 
-### 7.5 Restrict File Permissions
+### 7.5 Swagger in Production (Optional)
+
+Swagger is disabled by default in production. If you need it:
+
+1. Set `Swagger__Enabled=true` in IIS environment variables.
+2. Access `/swagger` and `/swagger/v1/swagger.json` with a valid `X-API-Key` header.
+3. Restrict access further using IIS IP allow-lists or VPN as needed.
+
+### 7.6 Restrict File Permissions
 
 ```powershell
 # Remove public access to config files

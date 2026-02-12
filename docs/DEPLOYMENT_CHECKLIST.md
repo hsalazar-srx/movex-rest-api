@@ -50,6 +50,7 @@ cd C:\Projects\MOVEX\API-Integration\movex-rest-api
 - [ ] M3 Password: `______` (verified with M3 admin)
 - [ ] API Key: `______` (generated above)
 - [ ] Admin Key: `______` (generated or assigned)
+- [ ] Swagger Enabled: `______` (recommended: false in prod; if true requires X-API-Key for /swagger)
 
 ### 1.5 Create Deployment Package
 ```powershell
