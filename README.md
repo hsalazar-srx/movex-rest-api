@@ -5,6 +5,21 @@ ASP.NET Core REST API for M3 MOVEX using a pure managed socket client (no mvxsoc
 
 Tested on .NET 8.
 
+## 📋 Workspace Standards Compliance
+
+**IMPORTANT:** This project MUST comply with **[WORKSPACE_RULES.md](../../../.github/WORKSPACE_RULES.md)**.
+
+**Key Requirements:**
+- ✅ Future: Audit logs to **SQL Server** (currently file-based, migration planned)
+- ✅ Connection strings in **User Secrets** (development) or **environment variables** (IIS)
+- ⚠️ **Network security:** Current M3 sockets use plain TCP; deploy behind TLS 1.2+ (e.g., VPN, TLS terminator, or gateway). Native in-app TLS (`SslStream`) support is planned.
+- ✅ PascalCase for C# classes, camelCase for variables
+- ⚠️ Action Required: Migrate to standard SQL Server audit schema
+
+**Validation:** Run `../../../.github/scripts/validate-workspace-compliance.ps1` before deployment.
+
+---
+
 ## Features
 
 ✅ **Multi-Program Support** - Add new M3 programs via JSON config (no code changes)  
@@ -154,7 +169,7 @@ dotnet build
 dotnet run
 
 # Server starts at: http://localhost:5000
-# Swagger UI: http://localhost:5000/swagger (if enabled)
+# Swagger UI: http://localhost:5000/swagger
 ```
 
 **Expected Console Output:**
@@ -166,6 +181,23 @@ dotnet run
 [INFO] Now listening on: http://localhost:5000
 [INFO] Application started. Press Ctrl+C to shut down.
 ```
+
+### OpenAPI / Swagger
+
+Swagger is enabled when `Swagger:Enabled` is true (default in `appsettings.json`). In Production, Swagger endpoints require a valid `X-API-Key` header:
+
+- UI: `http://localhost:5000/swagger`
+- JSON: `http://localhost:5000/swagger/v1/swagger.json`
+
+The committed spec lives at `docs/openapi.json`. To update it after API changes, run:
+
+```powershell
+./scripts/generate-openapi.ps1
+```
+
+**Windows runtime requirement:** the Swashbuckle CLI (`swagger.exe`) targets **.NET 7.0**. If you only have .NET 6/8/9 installed, install the **.NET 7.0 runtime (x64)** before running the script.
+
+See [docs/OPENAPI.md](docs/OPENAPI.md) for details.
 
 ### 6. Test the API
 
@@ -554,6 +586,7 @@ Provide all secrets via your platform's secret store (e.g., Key Vault/Secrets Ma
 - `ConnectionPool:MinSize`, `ConnectionPool:MaxSize` — Connection pool sizing (optional, defaults: 2 min, 10 max)
 - `ConnectionPool:IdleTimeoutSeconds` — Idle connection timeout (optional, default: 300s)
 - `AllowedOrigins` — Configure CORS; if none are set, cross-origin requests are blocked by default
+- `Swagger:Enabled` — Enable Swagger UI/JSON in production (requires `X-API-Key`)
 
 **Example: Setting Environment Variables for Production**
 
@@ -703,7 +736,7 @@ Transactions can specify the HTTP method in their JSON config. If a transaction 
 - `011` - Facility Does Not Exist
 
 ### Pool Monitoring
-- `GET /api/pool/stats` — Connection pool statistics (requires API key)
+- `GET /api/transactions/pool-stats` — Connection pool statistics (requires API key)
 
 ### Health
 - `GET /health` — Health check (no authentication required)

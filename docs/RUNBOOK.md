@@ -17,6 +17,7 @@
 - API keys: `ApiKeys__Primary`, `ApiKeys__Admin`
 - (Optional) `AllowedOrigins` for CORS
 - Logging level: `Logging__LogLevel__Default` (Information/Warning)
+- Swagger: `Swagger__Enabled` (set to true only if needed; requires `X-API-Key` in production)
 
 ## 3) Build & package (development machine)
 ```powershell

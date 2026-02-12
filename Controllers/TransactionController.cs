@@ -52,50 +52,41 @@ namespace Movex.API.Controllers
             // Check if response is a string (raw response)
             if (response is string rawResponse)
             {
-                if (rawResponse.StartsWith("NOK", StringComparison.OrdinalIgnoreCase))
+                var rawResponseTrimmed = rawResponse.TrimStart();
+
+                if (rawResponseTrimmed.StartsWith("NOK", StringComparison.OrdinalIgnoreCase))
                 {
-                    errorMessage = rawResponse.Length > 4 ? rawResponse.Substring(4).Trim() : "Transaction failed";
+                    errorMessage = rawResponseTrimmed.Length > 4 ? rawResponseTrimmed.Substring(4).Trim() : "Transaction failed";
                     errorCode = "M3_NOK_RESPONSE";
                     return false;
                 }
-                return rawResponse.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
+
+                return rawResponseTrimmed.StartsWith("OK", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (response is List<Dictionary<string, object?>> parsedList)
+            {
+                return EvaluateParsedList(parsedList, out errorMessage, out errorCode);
+            }
+
+            if (response is List<Dictionary<string, object>> parsedListNonNullable)
+            {
+                var convertedList = parsedListNonNullable
+                    .Select(record => record.ToDictionary(kvp => kvp.Key, kvp => (object?)kvp.Value))
+                    .ToList();
+                return EvaluateParsedList(convertedList, out errorMessage, out errorCode);
             }
             
             // For parsed responses (Dictionary), check for MSID field
-            if (response is Dictionary<string, object> parsedResponse)
+            if (response is Dictionary<string, object?> parsedResponse)
             {
-                if (parsedResponse.TryGetValue("MSID", out var msidObj))
-                {
-                    string? msid = msidObj?.ToString()?.Trim();
-                    
-                    // MSID of "000" or empty typically indicates success
-                    if (string.IsNullOrEmpty(msid) || msid.Equals("000", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                    
-                    // Extract error details from MSDT field if present
-                    if (parsedResponse.TryGetValue("MSDT", out var msdtObj))
-                    {
-                        errorMessage = msdtObj?.ToString()?.Trim() ?? "M3 transaction failed";
-                    }
-                    else
-                    {
-                        errorMessage = $"M3 transaction failed with error code: {msid}";
-                    }
-                    
-                    errorCode = msid;
-                    return false;
-                }
-                
-                // NEW: If no MSID but response is empty, treat as failure
-                if (parsedResponse.Count == 0)
-                {
-                    errorMessage = "M3 returned empty response - transaction may have failed";
-                    errorCode = "M3_EMPTY_RESPONSE";
-                    _logger.LogWarning("M3 returned empty parsed response - this may indicate a rejected transaction");
-                    return false;
-                }
+                return EvaluateParsedResponse(parsedResponse, out errorMessage, out errorCode);
+            }
+
+            if (response is Dictionary<string, object> parsedResponseNonNullable)
+            {
+                var converted = parsedResponseNonNullable.ToDictionary(kvp => kvp.Key, kvp => (object?)kvp.Value);
+                return EvaluateParsedResponse(converted, out errorMessage, out errorCode);
             }
             
             // CHANGED: Log the actual response type and don't assume success
@@ -105,6 +96,67 @@ namespace Movex.API.Controllers
             
             // IMPORTANT: Return false here - don't assume success!
             // The transaction likely failed silently
+            errorMessage = "M3 returned response without MSID field - unable to confirm success";
+            errorCode = "M3_NO_MSID_FIELD";
+            return false;
+        }
+
+        private bool EvaluateParsedList(List<Dictionary<string, object?>> parsedList, out string? errorMessage, out string? errorCode)
+        {
+            errorMessage = null;
+            errorCode = null;
+
+            if (parsedList.Count == 0)
+            {
+                errorMessage = "M3 returned empty response - transaction may have failed";
+                errorCode = "M3_EMPTY_RESPONSE";
+                _logger.LogWarning("M3 returned empty parsed list response - this may indicate a rejected transaction");
+                return false;
+            }
+
+            return EvaluateParsedResponse(parsedList[0], out errorMessage, out errorCode);
+        }
+
+        private bool EvaluateParsedResponse(Dictionary<string, object?> parsedResponse, out string? errorMessage, out string? errorCode)
+        {
+            errorMessage = null;
+            errorCode = null;
+
+            if (parsedResponse.TryGetValue("MSID", out var msidObj))
+            {
+                string? msid = msidObj?.ToString()?.Trim();
+
+                // MSID of "000" or empty typically indicates success
+                if (string.IsNullOrEmpty(msid) || msid.Equals("000", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                // Extract error details from MSDT field if present
+                if (parsedResponse.TryGetValue("MSDT", out var msdtObj))
+                {
+                    errorMessage = msdtObj?.ToString()?.Trim() ?? "M3 transaction failed";
+                }
+                else
+                {
+                    errorMessage = $"M3 transaction failed with error code: {msid}";
+                }
+
+                errorCode = msid;
+                return false;
+            }
+
+            // If no MSID but response is empty, treat as failure
+            if (parsedResponse.Count == 0)
+            {
+                errorMessage = "M3 returned empty response - transaction may have failed";
+                errorCode = "M3_EMPTY_RESPONSE";
+                _logger.LogWarning("M3 returned empty parsed response - this may indicate a rejected transaction");
+                return false;
+            }
+
+            _logger.LogWarning("M3 response has no MSID field - cannot verify transaction success. Content: {Content}",
+                System.Text.Json.JsonSerializer.Serialize(parsedResponse));
             errorMessage = "M3 returned response without MSID field - unable to confirm success";
             errorCode = "M3_NO_MSID_FIELD";
             return false;
