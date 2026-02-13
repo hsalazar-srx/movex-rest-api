@@ -13,6 +13,8 @@ using Movex.API.Infrastructure.Resilience;
 using Movex.API.Infrastructure.TransactionBuilding;
 using Movex.API.Services;
 using Movex.API.Services.Validation;
+using Movex.API.Swagger;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -92,6 +94,52 @@ Console.WriteLine($"[Config] Transaction Config: External configs loaded from 't
 
 // Add services
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Movex REST API",
+        Version = "v1",
+        Description = "Config-driven REST API for M3 MOVEX transactions and workflows."
+    });
+
+    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Description = "API key required. Use the X-API-Key header.",
+        Name = "X-API-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    options.AddSecurityDefinition("AdminKey", new OpenApiSecurityScheme
+    {
+        Description = "Admin key for rotation endpoints. Use the X-Admin-Key header.",
+        Name = "X-Admin-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    options.OperationFilter<HealthEndpointNoAuthOperationFilter>();
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
+});
 
 // Add validation services
 builder.Services.AddSingleton<IFieldValidator, FieldValidator>();
