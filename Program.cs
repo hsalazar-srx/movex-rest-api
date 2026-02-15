@@ -15,11 +15,9 @@ using Movex.API.Services;
 using Movex.API.Services.Validation;
 using Movex.API.Swagger;
 using Microsoft.OpenApi.Models;
-using System.Reflection;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
