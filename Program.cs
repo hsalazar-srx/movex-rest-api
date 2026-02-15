@@ -15,6 +15,7 @@ using Movex.API.Services;
 using Movex.API.Services.Validation;
 using Movex.API.Swagger;
 using Microsoft.OpenApi.Models;
+using System.Reflection;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -203,6 +204,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseCors();
