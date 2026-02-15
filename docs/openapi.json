@@ -1,0 +1,491 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Movex REST API",
+    "description": "Config-driven REST API for M3 MOVEX transactions and workflows.",
+    "version": "v1"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Movex.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringDateTimeStringInt32String<>f__AnonymousType33<>f__AnonymousType32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/pool-stats": {
+      "get": {
+        "tags": [
+          "Movex.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanConnectionPoolStatsDateTime<>f__AnonymousType34"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/security/api-key/status": {
+      "get": {
+        "tags": [
+          "Security"
+        ],
+        "summary": "Returns whether the primary API key is configured (does not reveal the key)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/security/api-key/rotate": {
+      "post": {
+        "tags": [
+          "Security"
+        ],
+        "summary": "Admin-only: Rotate the primary API key. Development only.\r\nRequires X-Admin-Key header to match configuration.\r\nGenerates a new 256-bit Base64 key, stores it via User Secrets, and returns it.",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "style": "form",
+            "schema": {
+              "type": "string",
+              "default": "Base64"
+            }
+          },
+          {
+            "name": "bytes",
+            "in": "query",
+            "style": "form",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 32
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workflows/AdjustStockWithValidation": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Validate item and adjust stock in a single server-side flow (Option A)\r\nValidates item first, then delegates to the dynamic MMS310MI/Update endpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workflows/StockManagement": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "MES Stock Management System (SMS) - Requirement 1\r\nValidates item, checks warehouse balance, and updates stock\r\nDelegates to dynamic transaction endpoints for consistent behavior",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workflows/GetStandardCost": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "MES Check Standard Cost - Requirement 2\r\nValidates item and retrieves unit cost price",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/programs": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "List all available M3 programs",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/programs/{program}": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Get program metadata",
+        "parameters": [
+          {
+            "name": "program",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/{program}/{transaction}/info": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Get transaction information for a program",
+        "parameters": [
+          {
+            "name": "program",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transaction",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/{program}/{transaction}": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Execute transaction for a program (POST body)",
+        "parameters": [
+          {
+            "name": "program",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transaction",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Execute transaction for a program (GET query parameters)",
+        "parameters": [
+          {
+            "name": "program",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transaction",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/mms175mi/update": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "MMS175MI - Update (Change item location)\r\nTransfers item quantity from one location to another within same warehouse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BooleanConnectionPoolStatsDateTime<>f__AnonymousType34": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ConnectionPoolStats"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConnectionPoolStats": {
+        "type": "object",
+        "properties": {
+          "totalConnections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "availableConnections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inUseConnections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minPoolSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPoolSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StringDateTimeStringInt32String<>f__AnonymousType33<>f__AnonymousType32": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "config": {
+            "$ref": "#/components/schemas/StringInt32String<>f__AnonymousType33"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StringInt32String<>f__AnonymousType33": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string",
+            "nullable": true
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "description": "API key required. Use the X-API-Key header.",
+        "name": "X-API-Key",
+        "in": "header"
+      },
+      "AdminKey": {
+        "type": "apiKey",
+        "description": "Admin key for rotation endpoints. Use the X-Admin-Key header.",
+        "name": "X-Admin-Key",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKey": [ ]
+    }
+  ]
+}

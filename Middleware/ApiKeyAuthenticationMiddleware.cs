@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -16,6 +17,7 @@ namespace Movex.API.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<ApiKeyAuthenticationMiddleware> _logger;
         private readonly IOptionsMonitor<ApiKeyOptions> _optionsMonitor;
+        private readonly IHostEnvironment _environment;
 
         private const string ApiKeyHeader = "X-API-Key";
         private const string AdminKeyHeader = "X-Admin-Key";
@@ -23,17 +25,26 @@ namespace Movex.API.Middleware
         public ApiKeyAuthenticationMiddleware(
             RequestDelegate next,
             IOptionsMonitor<ApiKeyOptions> optionsMonitor,
-            ILogger<ApiKeyAuthenticationMiddleware> logger)
+            ILogger<ApiKeyAuthenticationMiddleware> logger,
+            IHostEnvironment environment)
         {
             _next = next;
             _logger = logger;
             _optionsMonitor = optionsMonitor;
+            _environment = environment;
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
             // Allow health endpoint without key
             if (context.Request.Path.StartsWithSegments("/health"))
+            {
+                await _next(context);
+                return;
+            }
+
+            // Allow Swagger UI in Development without key
+            if (_environment.IsDevelopment() && context.Request.Path.StartsWithSegments("/swagger"))
             {
                 await _next(context);
                 return;

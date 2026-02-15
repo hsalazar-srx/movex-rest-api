@@ -163,6 +163,7 @@ ApiKeys__Admin      = your-admin-key (for key rotation)
 ```
 Logging__LogLevel__Default                = Information (or Warning for production)
 ASPNETCORE_ENVIRONMENT                    = Production
+Swagger__Enabled                           = false (set true only when needed)
 ```
 
 ---
@@ -216,6 +217,7 @@ curl -X POST http://SRXWEBAPP1:5000/api/workflows/StockManagement \
 - [ ] M3 credentials stored securely (IIS Application Settings only)
 - [ ] Log files restricted from public access
 - [ ] Configuration files (appsettings.json) restricted from public access
+- [ ] Swagger disabled by default in production, or protected with API key access
 - [ ] Only necessary ports exposed (5000 for HTTP, 443 for HTTPS)
 - [ ] App pool identity uses ApplicationPoolIdentity (least privilege)
 - [ ] Regular log file monitoring for security events

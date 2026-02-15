@@ -19,10 +19,19 @@ using System.Reflection;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var isDev = builder.Environment.IsDevelopment();
+var swaggerEnabled = builder.Configuration.GetValue<bool?>("Swagger:Enabled") ?? isDev;
+var isSwaggerGeneration = builder.Configuration.GetValue<bool>("Swagger:Generate")
+    || string.Equals(Environment.GetEnvironmentVariable("SWAGGER_GENERATION"), "true", StringComparison.OrdinalIgnoreCase);
+
+if (isSwaggerGeneration)
+{
+    swaggerEnabled = true;
+}
 
 // Configuration: User Secrets in Development, plus Environment Variables
 if (isDev)
@@ -62,10 +71,16 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .Enrich.FromLogContext();
 });
 
-var m3Host = builder.Configuration["M3:HOST"] ?? throw new InvalidOperationException("M3:HOST is not configured");
-var m3Port = int.Parse(builder.Configuration["M3:PORT"] ?? "6300");
-var m3User = builder.Configuration["M3:USER"] ?? throw new InvalidOperationException("M3:USER is not configured");
-var m3Password = builder.Configuration["M3:PASSWORD"] ?? throw new InvalidOperationException("M3:PASSWORD is not configured");
+var m3Host = builder.Configuration["M3:HOST"]
+    ?? (isSwaggerGeneration ? "swagger" : throw new InvalidOperationException("M3:HOST is not configured"));
+var m3PortSetting = builder.Configuration["M3:PORT"];
+var m3Port = int.TryParse(m3PortSetting, out var parsedPort)
+    ? parsedPort
+    : (isSwaggerGeneration ? 0 : 6300);
+var m3User = builder.Configuration["M3:USER"]
+    ?? (isSwaggerGeneration ? "swagger" : throw new InvalidOperationException("M3:USER is not configured"));
+var m3Password = builder.Configuration["M3:PASSWORD"]
+    ?? (isSwaggerGeneration ? "swagger" : throw new InvalidOperationException("M3:PASSWORD is not configured"));
 var defaultCompany = builder.Configuration["M3:DEFAULT_COMPANY"] ?? "300";
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 
@@ -79,10 +94,21 @@ var poolOptions = new MvxConnectionPoolOptions
     ValidateOnAcquire = bool.Parse(builder.Configuration["ConnectionPool:ValidateOnAcquire"] ?? "true")
 };
 
+if (isSwaggerGeneration)
+{
+    poolOptions.MinPoolSize = 0;
+    poolOptions.MaxPoolSize = 0;
+    poolOptions.ConnectionIdleTimeoutSeconds = 1;
+    poolOptions.AcquireTimeoutSeconds = 1;
+    poolOptions.ValidateOnAcquire = false;
+}
+
 // API Key config
 builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection("ApiKeys"));
 
 Console.WriteLine($"[Config] Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"[Config] Swagger Generation Mode: {(isSwaggerGeneration ? "enabled" : "disabled")}");
+Console.WriteLine($"[Config] Swagger UI Enabled: {(swaggerEnabled ? "enabled" : "disabled")}");
 
 Console.WriteLine($"[Config] User Secrets: {(isDev ? "enabled" : "disabled (set ASPNETCORE_ENVIRONMENT=Development to use)")}");
 Console.WriteLine($"[Config] Env Vars: enabled");
@@ -212,6 +238,16 @@ app.UseCors();
 
 // API Key auth (skip health)
 app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
+
+if (swaggerEnabled)
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Movex REST API v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 app.UseRouting();
 app.MapControllers();
 
