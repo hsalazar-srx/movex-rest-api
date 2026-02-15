@@ -13,10 +13,12 @@ using Movex.API.Infrastructure.Resilience;
 using Movex.API.Infrastructure.TransactionBuilding;
 using Movex.API.Services;
 using Movex.API.Services.Validation;
+using Movex.API.Swagger;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System.IO;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -156,6 +158,8 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 
+    options.OperationFilter<HealthEndpointNoAuthOperationFilter>();
+
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
@@ -226,6 +230,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseCors();
