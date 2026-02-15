@@ -20,7 +20,7 @@ $ErrorActionPreference = 'Stop'
 
 if (-not $ProjectPath) {
     # Default to the API project next to this script folder
-    $ProjectPath = Join-Path (Join-Path $PSScriptRoot '..') 'MMS200MI.API.csproj'
+    $ProjectPath = Join-Path (Join-Path $PSScriptRoot '..') 'Movex.API.csproj'
 }
 
 if (-not (Test-Path -LiteralPath $ProjectPath)) {
@@ -29,14 +29,14 @@ if (-not (Test-Path -LiteralPath $ProjectPath)) {
 }
 
 # Generate cryptographically secure random bytes
-$bytes = New-Object byte[] $Bytes
+$randomBytes = New-Object byte[] $Bytes
 $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-$rng.GetBytes($bytes)
+$rng.GetBytes($randomBytes)
 
 # Convert to requested format
 switch ($Format) {
-    'Base64' { $key = [Convert]::ToBase64String($bytes) }
-    'Hex'    { $key = -join ($bytes | ForEach-Object { $_.ToString('x2') }) }
+    'Base64' { $key = [Convert]::ToBase64String($randomBytes) }
+    'Hex'    { $key = -join ($randomBytes | ForEach-Object { $_.ToString('x2') }) }
 }
 
 if ($ShowOnly) {
@@ -47,17 +47,12 @@ if ($ShowOnly) {
 
 # Store in User Secrets
 Write-Host "Setting secret '$SecretName' for project: $ProjectPath" -ForegroundColor Cyan
-$setCmd = "dotnet user-secrets set `"$SecretName`" `"$key`" --project `"$ProjectPath`""
+
 
 # Use Start-Process for better error handling on quoting
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName = 'dotnet'
-$psi.ArgumentList.Add('user-secrets')
-$psi.ArgumentList.Add('set')
-$psi.ArgumentList.Add($SecretName)
-$psi.ArgumentList.Add($key)
-$psi.ArgumentList.Add('--project')
-$psi.ArgumentList.Add($ProjectPath)
+$psi.Arguments = "user-secrets set `"$SecretName`" `"$key`" --project `"$ProjectPath`""
 $psi.UseShellExecute = $false
 $psi.RedirectStandardOutput = $true
 $psi.RedirectStandardError = $true
