@@ -237,7 +237,14 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 
 // API Key auth (skip health)
-app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
+app.UseWhen(context =>
+{
+    var path = context.Request.Path;
+    return !path.StartsWithSegments("/swagger") && !path.StartsWithSegments("/health");
+}, branch =>
+{
+    branch.UseMiddleware<ApiKeyAuthenticationMiddleware>();
+});
 
 if (swaggerEnabled)
 {
