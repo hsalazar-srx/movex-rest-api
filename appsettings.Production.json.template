@@ -1,0 +1,24 @@
+{
+  "_comment": "Template for Production environment. Copy this file to appsettings.Production.json on the PROD server and fill in AllowedOrigins. Sensitive values (M3 credentials, ApiKeys) go ONLY in IIS environment variables — never in this file.",
+  "Swagger": {
+    "Enabled": false,
+    "Generate": false
+  },
+  "AllowedOrigins": [
+    "https://your-portal.yourcompany.com"
+  ],
+  "ConnectionPool": {
+    "MinSize": 2,
+    "MaxSize": 10,
+    "IdleTimeoutSeconds": 300,
+    "AcquireTimeoutSeconds": 10,
+    "ValidateOnAcquire": true
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "MovexRestApi.Infrastructure.Http": "Information"
+    }
+  }
+}

@@ -302,6 +302,37 @@ _________________________________________________________________
 
 ---
 
+---
+
+## Phase 6: IIS Parity Validation (cloud/dev-prod-parity v1.0.0)
+
+Run before every UAT/production deployment. These gaps are invisible in development (Kestrel)
+but break in IIS. Reference: `c:/Projects/Knowledge-Management/vault/runbooks/iis-deployment.md`
+Agent: `@validator-iis-deploy`
+
+**Pre-deploy:**
+- [ ] Controller `[Route(...)]` attributes do NOT include the IIS sub-app path prefix
+      (IIS strips the prefix before forwarding — including it causes 404 on every route)
+- [ ] All required secrets present in `appsettings.Production.json`
+      (missing key → 502 Bad Gateway at runtime with no obvious UI error)
+- [ ] App pool `managedRuntimeVersion` = `""` (No Managed Code), `loadUserProfile` = `true`
+- [ ] IIS URL Rewrite Module installed (if SPA frontend present)
+      `Get-WebGlobalModule -Name "RewriteModule"` — empty output = NOT installed
+
+**Deploy:**
+- [ ] Identify correct app pool: `appcmd.exe list app /site.name:"<SiteName>"`
+- [ ] Stop correct app pool before replacing DLL: `appcmd.exe stop apppool <PoolName>`
+- [ ] Verify DLL timestamp after copy matches build output timestamp
+- [ ] Start app pool: `appcmd.exe start apppool <PoolName>`
+
+**Post-deploy smoke tests:**
+- [ ] `curl.exe --negotiate -u : http://localhost/<path>/health` → 401 then 200 (not 404)
+      404 = route mismatch; 401 loop = auth config issue
+- [ ] Check IIS event log for startup errors
+- [ ] Check stdout log (`.\logs\stdout*.log`) if available
+
+---
+
 **Deployment Status:** ☐ IN PROGRESS  ☐ COMPLETED  ☐ FAILED  ☐ ROLLED BACK
 
 **Completion Date:** ___/___/_____
