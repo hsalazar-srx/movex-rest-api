@@ -1,5 +1,19 @@
 # Pre-Deployment Verification Script for SRXWEBAPP1
 # Run this script on the target server before deployment
+#
+# Usage:
+#   UAT:  .\pre-deployment-check.ps1 -M3Host UAT_M3_IP -M3Port 6300 `
+#             -AppPath C:\inetpub\wwwroot\movex-api-uat -AppPoolName Movex.API.UAT
+#
+#   PROD: .\pre-deployment-check.ps1 -M3Host 150.3.2.100 -M3Port 6300 `
+#             -AppPath C:\inetpub\wwwroot\movex-api-prod -AppPoolName Movex.API.PROD
+
+param(
+    [string]$M3Host = "150.3.2.100",
+    [string]$M3Port = "6300",
+    [string]$AppPath = "C:\inetpub\wwwroot\movex-api",
+    [string]$AppPoolName = "Movex.API"
+)
 
 Write-Host "================================" -ForegroundColor Cyan
 Write-Host "SRXWEBAPP1 Pre-Deployment Check" -ForegroundColor Cyan
@@ -41,9 +55,8 @@ try {
 # Test 3: ASP.NET Core Hosting Bundle
 Write-Host "`n[TEST 3] Checking ASP.NET Core Hosting Bundle..." -ForegroundColor Yellow
 try {
-    $hostingModules = Get-Module -ListAvailable -Name "*AspNetCoreModule*" -ErrorAction SilentlyContinue
     $iisModules = Get-IISModule -Name "*AspNetCoreModule*" -ErrorAction SilentlyContinue
-    
+
     if ($iisModules) {
         Write-Host "✓ ASP.NET Core Hosting Bundle is installed" -ForegroundColor Green
     } else {
@@ -56,27 +69,24 @@ try {
 }
 
 # Test 4: M3 Server Connectivity
-Write-Host "`n[TEST 4] Checking M3 Server Connectivity..." -ForegroundColor Yellow
-$m3Host = "150.3.2.100"
-$m3Port = 6000
-
+Write-Host "`n[TEST 4] Checking M3 Server Connectivity ($M3Host`:$M3Port)..." -ForegroundColor Yellow
 try {
     $tcpClient = New-Object System.Net.Sockets.TcpClient
     $tcpClient.SendTimeout = 5000
     $tcpClient.ReceiveTimeout = 5000
-    
-    $result = $tcpClient.BeginConnect($m3Host, $m3Port, $null, $null)
+
+    $result = $tcpClient.BeginConnect($M3Host, [int]$M3Port, $null, $null)
     $result.AsyncWaitHandle.WaitOne(5000, $true) | Out-Null
-    
+
     if ($tcpClient.Connected) {
-        Write-Host "✓ Can reach M3 server at ${m3Host}:${m3Port}" -ForegroundColor Green
+        Write-Host "✓ Can reach M3 server at ${M3Host}:${M3Port}" -ForegroundColor Green
         $tcpClient.Close()
     } else {
-        Write-Host "✗ ERROR: Cannot reach M3 server at ${m3Host}:${m3Port}. Check network and firewall" -ForegroundColor Red
+        Write-Host "✗ ERROR: Cannot reach M3 server at ${M3Host}:${M3Port}. Check network and firewall" -ForegroundColor Red
         $errorCount++
     }
 } catch {
-    Write-Host "✗ ERROR: Cannot reach M3 server at ${m3Host}:${m3Port}" -ForegroundColor Red
+    Write-Host "✗ ERROR: Cannot reach M3 server at ${M3Host}:${M3Port}" -ForegroundColor Red
     Write-Host "  Details: $($_.Exception.Message)" -ForegroundColor Red
     $errorCount++
 }
@@ -97,15 +107,14 @@ try {
 }
 
 # Test 6: Application Directory Structure
-Write-Host "`n[TEST 6] Checking Application Directory..." -ForegroundColor Yellow
-$appPath = "C:\inetpub\wwwroot\movex-api"
-if (Test-Path $appPath) {
-    Write-Host "✓ Application directory exists: $appPath" -ForegroundColor Green
-    
+Write-Host "`n[TEST 6] Checking Application Directory ($AppPath)..." -ForegroundColor Yellow
+if (Test-Path $AppPath) {
+    Write-Host "✓ Application directory exists: $AppPath" -ForegroundColor Green
+
     # Check for required files
     $requiredFiles = @("Movex.API.exe", "appsettings.json")
     foreach ($file in $requiredFiles) {
-        if (Test-Path "$appPath\$file") {
+        if (Test-Path "$AppPath\$file") {
             Write-Host "  ✓ Found: $file" -ForegroundColor Green
         } else {
             Write-Host "  ✗ Missing: $file" -ForegroundColor Red
@@ -118,10 +127,10 @@ if (Test-Path $appPath) {
 
 # Test 7: Logs Directory
 Write-Host "`n[TEST 7] Checking Logs Directory..." -ForegroundColor Yellow
-$logsPath = "$appPath\logs"
+$logsPath = "$AppPath\logs"
 if (Test-Path $logsPath) {
     Write-Host "✓ Logs directory exists: $logsPath" -ForegroundColor Green
-    
+
     # Check permissions
     try {
         $acl = Get-Acl $logsPath
@@ -140,14 +149,14 @@ if (Test-Path $logsPath) {
 }
 
 # Test 8: IIS Application Pool
-Write-Host "`n[TEST 8] Checking IIS Application Pool..." -ForegroundColor Yellow
+Write-Host "`n[TEST 8] Checking IIS Application Pool ($AppPoolName)..." -ForegroundColor Yellow
 try {
-    $appPool = Get-IISAppPool -Name "Movex.API" -ErrorAction SilentlyContinue
+    $appPool = Get-IISAppPool -Name $AppPoolName -ErrorAction SilentlyContinue
     if ($appPool) {
-        Write-Host "✓ Application pool 'Movex.API' exists" -ForegroundColor Green
+        Write-Host "✓ Application pool '$AppPoolName' exists" -ForegroundColor Green
         Write-Host "  State: $($appPool.State)" -ForegroundColor Gray
     } else {
-        Write-Host "⚠ WARNING: Application pool 'Movex.API' not found (will be created during deployment)" -ForegroundColor Yellow
+        Write-Host "⚠ WARNING: Application pool '$AppPoolName' not found (will be created during deployment)" -ForegroundColor Yellow
     }
 } catch {
     Write-Host "⚠ WARNING: Could not check application pool" -ForegroundColor Yellow

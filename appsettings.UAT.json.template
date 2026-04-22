@@ -1,0 +1,24 @@
+{
+  "_comment": "Template for UAT environment. Copy this file to appsettings.UAT.json on the UAT server and fill in AllowedOrigins. Sensitive values (M3 credentials, ApiKeys) go ONLY in IIS environment variables — never in this file.",
+  "Swagger": {
+    "Enabled": true,
+    "Generate": false
+  },
+  "AllowedOrigins": [
+    "http://SRXWEBAPP1:5001"
+  ],
+  "ConnectionPool": {
+    "MinSize": 1,
+    "MaxSize": 5,
+    "IdleTimeoutSeconds": 180,
+    "AcquireTimeoutSeconds": 15,
+    "ValidateOnAcquire": true
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft.AspNetCore": "Information",
+      "MovexRestApi.Infrastructure.Http": "Debug"
+    }
+  }
+}
