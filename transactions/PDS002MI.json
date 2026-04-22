@@ -1,0 +1,327 @@
+{
+  "program": "PDS002MI",
+  "library": "MVXCOBJ",
+  "description": "Product Structure Management — BOM Component and Routing Operations",
+  "transactions": [
+    {
+      "name": "AddComponent",
+      "description": "Add a BOM line (component + quantity + operation) to a product structure",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Facility"
+        },
+        {
+          "name": "PRNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Parent Product Number"
+        },
+        {
+          "name": "STRT",
+          "position": 4,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Product Structure Type"
+        },
+        {
+          "name": "MSEQ",
+          "position": 5,
+          "length": 4,
+          "type": "numeric",
+          "required": true,
+          "description": "Sequence Number"
+        },
+        {
+          "name": "OPNO",
+          "position": 6,
+          "length": 4,
+          "type": "numeric",
+          "required": false,
+          "description": "Operation Number"
+        },
+        {
+          "name": "MTNO",
+          "position": 7,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Component Item Number"
+        },
+        {
+          "name": "CNQT",
+          "position": 8,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Component Quantity"
+        },
+        {
+          "name": "FDAT",
+          "position": 9,
+          "length": 8,
+          "type": "numeric",
+          "required": false,
+          "description": "From Date (YYYYMMDD)"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "position": 1,
+          "length": 7,
+          "type": "text",
+          "description": "Message ID (blank = success)"
+        },
+        {
+          "name": "MSDT",
+          "position": 2,
+          "length": 100,
+          "type": "text",
+          "description": "Error detail"
+        }
+      ]
+    },
+    {
+      "name": "DeleteComponent",
+      "description": "Remove a BOM line from a product structure",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Facility"
+        },
+        {
+          "name": "PRNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Parent Product Number"
+        },
+        {
+          "name": "STRT",
+          "position": 4,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Product Structure Type"
+        },
+        {
+          "name": "MSEQ",
+          "position": 5,
+          "length": 4,
+          "type": "numeric",
+          "required": true,
+          "description": "Sequence Number"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "position": 1,
+          "length": 7,
+          "type": "text",
+          "description": "Message ID (blank = success)"
+        },
+        {
+          "name": "MSDT",
+          "position": 2,
+          "length": 100,
+          "type": "text",
+          "description": "Error detail"
+        }
+      ]
+    },
+    {
+      "name": "AddOperation",
+      "description": "Add a new routing step to a product structure",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Facility"
+        },
+        {
+          "name": "PRNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Product Number"
+        },
+        {
+          "name": "STRT",
+          "position": 4,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Product Structure Type"
+        },
+        {
+          "name": "OPNO",
+          "position": 5,
+          "length": 4,
+          "type": "numeric",
+          "required": true,
+          "description": "Operation Number"
+        },
+        {
+          "name": "PLGR",
+          "position": 6,
+          "length": 8,
+          "type": "text",
+          "required": false,
+          "description": "Work Centre"
+        },
+        {
+          "name": "PITI",
+          "position": 7,
+          "length": 9,
+          "type": "text",
+          "required": false,
+          "description": "Run Time (minutes)"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "position": 1,
+          "length": 7,
+          "type": "text",
+          "description": "Message ID (blank = success)"
+        },
+        {
+          "name": "MSDT",
+          "position": 2,
+          "length": 100,
+          "type": "text",
+          "description": "Error detail"
+        }
+      ]
+    },
+    {
+      "name": "UpdateOperation",
+      "description": "Modify a routing operation on a product structure",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Facility"
+        },
+        {
+          "name": "PRNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Product Number"
+        },
+        {
+          "name": "STRT",
+          "position": 4,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Product Structure Type"
+        },
+        {
+          "name": "OPNO",
+          "position": 5,
+          "length": 4,
+          "type": "numeric",
+          "required": true,
+          "description": "Operation Number"
+        },
+        {
+          "name": "PLGR",
+          "position": 6,
+          "length": 8,
+          "type": "text",
+          "required": false,
+          "description": "Work Centre"
+        },
+        {
+          "name": "PITI",
+          "position": 7,
+          "length": 9,
+          "type": "text",
+          "required": false,
+          "description": "Run Time (minutes)"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "position": 1,
+          "length": 7,
+          "type": "text",
+          "description": "Message ID (blank = success)"
+        },
+        {
+          "name": "MSDT",
+          "position": 2,
+          "length": 100,
+          "type": "text",
+          "description": "Error detail"
+        }
+      ]
+    }
+  ]
+}
