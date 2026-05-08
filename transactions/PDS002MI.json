@@ -244,6 +244,97 @@
       ]
     },
     {
+      "name": "LstOperation",
+      "description": "List all routing operations for a product structure. Call without OPNO and FDAT to use the 4-field key and return all ops from the start (source-verified 2026-05-08).",
+      "httpMethod": "GET",
+      "returnsList": true,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Facility"
+        },
+        {
+          "name": "PRNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Product Number"
+        },
+        {
+          "name": "STRT",
+          "position": 4,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Product Structure Type (001 = standard)"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "OPNO",
+          "position": 1,
+          "length": 4,
+          "type": "numeric",
+          "description": "Operation Number"
+        },
+        {
+          "name": "OPDS",
+          "position": 2,
+          "length": 30,
+          "type": "text",
+          "description": "Operation Description"
+        },
+        {
+          "name": "PLGR",
+          "position": 3,
+          "length": 8,
+          "type": "text",
+          "description": "Work Centre"
+        },
+        {
+          "name": "PITI",
+          "position": 4,
+          "length": 9,
+          "type": "text",
+          "description": "Run Time (minutes)"
+        },
+        {
+          "name": "SETI",
+          "position": 5,
+          "length": 9,
+          "type": "text",
+          "description": "Setup Time (minutes)"
+        },
+        {
+          "name": "FDAT",
+          "position": 6,
+          "length": 8,
+          "type": "numeric",
+          "description": "From Date (YYYYMMDD)"
+        },
+        {
+          "name": "TDAT",
+          "position": 7,
+          "length": 8,
+          "type": "numeric",
+          "description": "To Date (YYYYMMDD)"
+        }
+      ]
+    },
+    {
       "name": "UpdateOperation",
       "description": "Modify a routing operation on a product structure",
       "httpMethod": "POST",
