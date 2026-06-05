@@ -80,6 +80,16 @@ public class Db2QueryController : ControllerBase
                 }
             });
         }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+        {
+            _logger.LogError(ex, "Db2:ConnectionString is not configured");
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                success = false,
+                error   = "DB2 connection string is not configured. Set Db2:ConnectionString in user-secrets (dev) or the IIS env var Db2__ConnectionString (UAT/prod).",
+                detail  = ex.Message,
+            });
+        }
         catch (OdbcException ex)
         {
             _logger.LogError(ex, "DB2 error during MITPOP search: cono={Cono} popn={Popn}", conoResolved, popn);
@@ -128,6 +138,16 @@ public class Db2QueryController : ControllerBase
                 Cono    = conoResolved,
                 Prefix  = prefix.Trim().ToUpperInvariant(),
                 Data    = new NextSequenceData { NextSeq = nextSeq }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+        {
+            _logger.LogError(ex, "Db2:ConnectionString is not configured");
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                success = false,
+                error   = "DB2 connection string is not configured. Set Db2:ConnectionString in user-secrets (dev) or the IIS env var Db2__ConnectionString (UAT/prod).",
+                detail  = ex.Message,
             });
         }
         catch (OdbcException ex)
