@@ -18,6 +18,12 @@
 - (Optional) `AllowedOrigins` for CORS
 - Logging level: `Logging__LogLevel__Default` (Information/Warning)
 - Swagger: `Swagger__Enabled` (set to true only if needed; requires `X-API-Key` in production)
+- **DB2 direct-query** (for `/api/mitpop/search` and `/api/mitmas/next-sequence`):
+  - `Db2__ConnectionString` — IBM i ODBC connection string. Set via user-secrets (dev) or IIS env var (prod).
+    Format: `Driver={IBM i Access ODBC Driver};System=<IP>;Uid=<user>;Pwd=<pass>;`
+  - `Db2__SchemaCmp100` — schema for CONO 100 (default `MVXCDTA`)
+  - `Db2__SchemaCmp300` — schema for CONO 300 (default `MVXC300`)
+  - **Prerequisite:** IBM i Access ODBC Driver must be installed on SRXWEBAPP1 before these endpoints can serve requests.
 
 ## 3) Build & package (development machine)
 ```powershell

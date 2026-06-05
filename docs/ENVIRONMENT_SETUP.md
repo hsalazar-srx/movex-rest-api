@@ -114,6 +114,9 @@ They appear in IIS Manager → Sites → Default Web Site → `movex-api-{env}` 
 | `ApiKeys__Admin`              | `ApiKeys:Admin`             | Admin key (key rotation endpoint)  |
 | `Swagger__Enabled`            | `Swagger:Enabled`           | `true` (UAT) / `false` (PROD)      |
 | `Logging__LogLevel__Default`  | `Logging:LogLevel:Default`  | `Debug` (UAT) / `Information` (PROD) |
+| `Db2__ConnectionString`       | `Db2:ConnectionString`      | IBM i ODBC connection string for direct DB2 queries (`/api/mitpop/search`, `/api/mitmas/next-sequence`). Format: `Driver={IBM i Access ODBC Driver};System=<IP>;Uid=<user>;Pwd=<pass>;` |
+| `Db2__SchemaCmp100`           | `Db2:SchemaCmp100`          | DB2 schema for CONO 100 (default: `MVXCDTA`) |
+| `Db2__SchemaCmp300`           | `Db2:SchemaCmp300`          | DB2 schema for CONO 300 (default: `MVXC300`) |
 
 ---
 
