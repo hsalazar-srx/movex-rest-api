@@ -106,6 +106,10 @@ if (isSwaggerGeneration)
 // API Key config
 builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection("ApiKeys"));
 
+// DB2 direct-query config (used by MITPOP / MITMAS custom endpoints — no M3 MI equivalent)
+builder.Services.Configure<Db2Settings>(builder.Configuration.GetSection("Db2"));
+builder.Services.AddSingleton<Db2QueryService>();
+
 Console.WriteLine($"[Config] Environment: {builder.Environment.EnvironmentName}");
 Console.WriteLine($"[Config] Swagger Generation Mode: {(isSwaggerGeneration ? "enabled" : "disabled")}");
 Console.WriteLine($"[Config] Swagger UI Enabled: {(swaggerEnabled ? "enabled" : "disabled")}");
