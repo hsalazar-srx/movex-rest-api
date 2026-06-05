@@ -5,7 +5,7 @@ Updated: 2026-01-12
 ```mermaid
 ---
 config:
-  theme: light
+  theme: default
   layout: elk
   look: classic
 ---

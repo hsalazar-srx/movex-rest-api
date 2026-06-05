@@ -75,6 +75,7 @@ For day-to-day operations, see the runbook: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 - .NET 8.0 Runtime (for production on SRXWEBAPP1)
 - Network access to the M3 MI server (host/port)
 - IIS 10.0+ with ASP.NET Core Hosting Bundle (for SRXWEBAPP1)
+- **IBM i Access ODBC Driver** — required for DB2 direct-query endpoints (`/api/mitpop/search`, `/api/mitmas/next-sequence`). Install on SRXWEBAPP1 before first deployment if these endpoints are in use.
 
 ## Development Environment Setup
 
@@ -587,6 +588,9 @@ Provide all secrets via your platform's secret store (e.g., Key Vault/Secrets Ma
 - `ConnectionPool:IdleTimeoutSeconds` — Idle connection timeout (optional, default: 300s)
 - `AllowedOrigins` — Configure CORS; if none are set, cross-origin requests are blocked by default
 - `Swagger:Enabled` — Enable Swagger UI/JSON in production (requires `X-API-Key`)
+- `Db2:ConnectionString` — IBM i ODBC connection string for direct DB2 queries (MITPOP/MITMAS endpoints). Format: `Driver={IBM i Access ODBC Driver};System=<IP>;Uid=<user>;Pwd=<pass>;`
+- `Db2:SchemaCmp100` — DB2 schema for CONO 100 (default: `MVXCDTA`)
+- `Db2:SchemaCmp300` — DB2 schema for CONO 300 (default: `MVXC300`)
 
 **Example: Setting Environment Variables for Production**
 
@@ -734,6 +738,31 @@ Transactions can specify the HTTP method in their JSON config. If a transaction 
 - `003` - Item is not a raw material (ITTY must be 030)
 - `004` - Insufficient available stock in warehouse
 - `011` - Facility Does Not Exist
+
+### Part Number Intelligence (DB2 Direct — for Oskar S3-1, S3-2)
+
+These endpoints query MVXCDTA tables directly via DB2/ODBC. No M3 MI program supports these
+operations (confirmed 2026-05-11 — reverse alias lookup and MAX sequence are ITNO-first only in MI).
+
+Requires `Db2:ConnectionString` user-secret / environment variable and the IBM i Access ODBC
+driver installed on the host. See [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) for config details.
+
+- `GET /api/mitpop/search?cono=300&popn=ABC123[&e0pa=CUST01]`
+  Reverse alias lookup: customer part number → Scanfil APAC ITNO(s).
+  Queries `MVXCDTA.MITPOP WHERE MPPOPN = @popn`. Returns `data.records[]` + `data.count`.
+  Response shape:
+  ```json
+  { "data": { "records": [{ "ITNO": "LFAP110001", "ALWT": "1", "ALWQ": null, "E0PA": "CUST" }], "count": 1 } }
+  ```
+
+- `GET /api/mitmas/next-sequence?cono=300&prefix=LFAP11`
+  Next available sequence for a part number prefix.
+  Queries `MAX(TRIM(MMITNO)) FROM MVXCDTA.MITMAS WHERE MMITNO LIKE prefix%`.
+  Returns `data.next_seq` (integer). Returns 1 when no items with this prefix exist.
+  Response shape:
+  ```json
+  { "data": { "next_seq": 5 } }
+  ```
 
 ### Pool Monitoring
 - `GET /api/transactions/pool-stats` — Connection pool statistics (requires API key)
