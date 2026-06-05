@@ -6,6 +6,156 @@
     "version": "v1"
   },
   "paths": {
+    "/api/mitpop/search": {
+      "get": {
+        "tags": [
+          "Db2Query"
+        ],
+        "summary": "Reverse alias lookup: customer part number (POPN) → Scanfil APAC ITNO(s).\r\n            \r\nQueries MVXCDTA.MITPOP WHERE MPPOPN = popn [AND MPE0PA = e0pa].\r\nReturns all matching ITNOs so the caller can apply full_match / partial_match / no_match logic.\r\n            \r\nNo M3 MI program supports this direction (MMS025MI.LstAlias is ITNO-first).",
+        "parameters": [
+          {
+            "name": "cono",
+            "in": "query",
+            "description": "Company number (default: M3:DEFAULT_COMPANY from config)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "popn",
+            "in": "query",
+            "description": "Customer / external part number (MITPOP.MPPOPN). Required.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "e0pa",
+            "in": "query",
+            "description": "Optional partner/customer code filter (MITPOP.MPE0PA = OCUSMA.OKCUNO).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MitpopSearchResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MitpopSearchResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MitpopSearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway"
+          }
+        }
+      }
+    },
+    "/api/mitmas/next-sequence": {
+      "get": {
+        "tags": [
+          "Db2Query"
+        ],
+        "summary": "Get the next available sequence number for a Scanfil APAC part number prefix.\r\n            \r\nQueries MAX(TRIM(MMITNO)) FROM MVXCDTA.MITMAS WHERE MMITNO LIKE prefix||'%'.\r\nReturns next_seq = (last 4-digit sequence found) + 1, or 1 if no matches exist.\r\n            \r\nPN format: LF{CUNO(2)}{commodity(2)}{seq(4)}.\r\n'LF' is the company prefix (Scanfil APAC legacy) — not a lead-free marker.",
+        "parameters": [
+          {
+            "name": "cono",
+            "in": "query",
+            "description": "Company number (default: M3:DEFAULT_COMPANY from config)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "prefix",
+            "in": "query",
+            "description": "Part number prefix to scan (e.g. \"LFAP11\"). Required.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextSequenceResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextSequenceResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextSequenceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -13,11 +163,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringDateTimeStringInt32String<>f__AnonymousType33<>f__AnonymousType32"
+                  "$ref": "#/components/schemas/StringDateTimeStringInt32String<>f__AnonymousType34<>f__AnonymousType33"
                 }
               }
             }
@@ -32,11 +182,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BooleanConnectionPoolStatsDateTime<>f__AnonymousType34"
+                  "$ref": "#/components/schemas/BooleanConnectionPoolStatsDateTime<>f__AnonymousType35"
                 }
               }
             }
@@ -52,7 +202,7 @@
         "summary": "Returns whether the primary API key is configured (does not reveal the key)",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -67,7 +217,6 @@
           {
             "name": "format",
             "in": "query",
-            "style": "form",
             "schema": {
               "type": "string",
               "default": "Base64"
@@ -76,7 +225,6 @@
           {
             "name": "bytes",
             "in": "query",
-            "style": "form",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -86,7 +234,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -121,7 +269,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -156,7 +304,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -191,7 +339,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -204,7 +352,7 @@
         "summary": "List all available M3 programs",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -220,7 +368,6 @@
             "name": "program",
             "in": "path",
             "required": true,
-            "style": "simple",
             "schema": {
               "type": "string"
             }
@@ -228,7 +375,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -244,7 +391,6 @@
             "name": "program",
             "in": "path",
             "required": true,
-            "style": "simple",
             "schema": {
               "type": "string"
             }
@@ -253,7 +399,6 @@
             "name": "transaction",
             "in": "path",
             "required": true,
-            "style": "simple",
             "schema": {
               "type": "string"
             }
@@ -261,7 +406,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -277,7 +422,6 @@
             "name": "program",
             "in": "path",
             "required": true,
-            "style": "simple",
             "schema": {
               "type": "string"
             }
@@ -286,7 +430,6 @@
             "name": "transaction",
             "in": "path",
             "required": true,
-            "style": "simple",
             "schema": {
               "type": "string"
             }
@@ -316,7 +459,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       },
@@ -330,7 +473,6 @@
             "name": "program",
             "in": "path",
             "required": true,
-            "style": "simple",
             "schema": {
               "type": "string"
             }
@@ -339,7 +481,6 @@
             "name": "transaction",
             "in": "path",
             "required": true,
-            "style": "simple",
             "schema": {
               "type": "string"
             }
@@ -347,7 +488,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -382,7 +523,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "OK"
           }
         }
       }
@@ -390,7 +531,7 @@
   },
   "components": {
     "schemas": {
-      "BooleanConnectionPoolStatsDateTime<>f__AnonymousType34": {
+      "BooleanConnectionPoolStatsDateTime<>f__AnonymousType35": {
         "type": "object",
         "properties": {
           "success": {
@@ -432,7 +573,127 @@
         },
         "additionalProperties": false
       },
-      "StringDateTimeStringInt32String<>f__AnonymousType33<>f__AnonymousType32": {
+      "MitpopRecordDto": {
+        "type": "object",
+        "properties": {
+          "itno": {
+            "type": "string",
+            "nullable": true
+          },
+          "popn": {
+            "type": "string",
+            "nullable": true
+          },
+          "alwt": {
+            "type": "string",
+            "nullable": true
+          },
+          "alwq": {
+            "type": "string",
+            "nullable": true
+          },
+          "e0PA": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MitpopSearchData": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MitpopRecordDto"
+            },
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MitpopSearchResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "popn": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/MitpopSearchData"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NextSequenceData": {
+        "type": "object",
+        "properties": {
+          "nextSeq": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NextSequenceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "prefix": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/NextSequenceData"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "StringDateTimeStringInt32String<>f__AnonymousType34<>f__AnonymousType33": {
         "type": "object",
         "properties": {
           "status": {
@@ -444,12 +705,12 @@
             "format": "date-time"
           },
           "config": {
-            "$ref": "#/components/schemas/StringInt32String<>f__AnonymousType33"
+            "$ref": "#/components/schemas/StringInt32String<>f__AnonymousType34"
           }
         },
         "additionalProperties": false
       },
-      "StringInt32String<>f__AnonymousType33": {
+      "StringInt32String<>f__AnonymousType34": {
         "type": "object",
         "properties": {
           "host": {

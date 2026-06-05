@@ -21,25 +21,17 @@ if (-not (Test-Path $toolPath)) {
     New-Item -ItemType Directory -Path $toolPath | Out-Null
 }
 
-$swaggerCliVersion = "6.5.0"
+$swaggerCliVersion = "6.9.0"
 
-$localTools = dotnet tool list --tool-path $toolPath
-if ($localTools -match "Swashbuckle.AspNetCore.Cli") {
-    $versionLine = $localTools | Select-String "Swashbuckle.AspNetCore.Cli"
-    if ($versionLine -and $versionLine.ToString() -notmatch $swaggerCliVersion) {
-        Write-Host "[OpenAPI] Removing existing Swashbuckle CLI to pin version $swaggerCliVersion..."
-        dotnet tool uninstall --tool-path $toolPath Swashbuckle.AspNetCore.Cli
-        $localTools = dotnet tool list --tool-path $toolPath
-    }
+# Always uninstall first — avoids corrupt .tools state when version changes
+$localTools = dotnet tool list --tool-path $toolPath 2>&1
+if ($localTools -match "swashbuckle.aspnetcore.cli") {
+    Write-Host "[OpenAPI] Removing existing Swashbuckle CLI..."
+    dotnet tool uninstall --tool-path $toolPath Swashbuckle.AspNetCore.Cli | Out-Null
 }
 
-if ($localTools -notmatch "Swashbuckle.AspNetCore.Cli") {
-    Write-Host "[OpenAPI] Installing Swashbuckle CLI (local)..."
-    dotnet tool install --tool-path $toolPath Swashbuckle.AspNetCore.Cli --version $swaggerCliVersion
-} else {
-    Write-Host "[OpenAPI] Updating Swashbuckle CLI (local)..."
-    dotnet tool update --tool-path $toolPath Swashbuckle.AspNetCore.Cli --version $swaggerCliVersion
-}
+Write-Host "[OpenAPI] Installing Swashbuckle CLI $swaggerCliVersion (local)..."
+dotnet tool install --tool-path $toolPath Swashbuckle.AspNetCore.Cli --version $swaggerCliVersion
 
 $assemblyRoot = Join-Path $projectRoot "bin\$Configuration\net8.0"
 $assemblyPath = Join-Path $assemblyRoot "Movex.API.dll"
