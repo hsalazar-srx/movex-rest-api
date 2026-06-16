@@ -66,6 +66,22 @@
           "type": "text",
           "startIndex": 189,
           "description": "Unit of Measure (absolute position)"
+        },
+        {
+          "name": "PRGP",
+          "position": 6,
+          "length": 12,
+          "type": "text",
+          "startIndex": 215,
+          "description": "Procurement Group"
+        },
+        {
+          "name": "ITCL",
+          "position": 7,
+          "length": 15,
+          "type": "text",
+          "startIndex": 230,
+          "description": "Product Group (Item Classification)"
         }
       ]
     },

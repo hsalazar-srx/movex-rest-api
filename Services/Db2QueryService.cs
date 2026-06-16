@@ -30,6 +30,9 @@ public sealed class Db2QueryService
     {
         _settings = settings.Value;
         _logger   = logger;
+
+        if (string.IsNullOrWhiteSpace(_settings.ConnectionString))
+            _logger.LogWarning("Db2:ConnectionString is not configured — /api/mitpop/search and /api/mitmas/next-sequence will return 502 until it is set.");
     }
 
     // ── MITPOP reverse alias lookup ───────────────────────────────────────────
