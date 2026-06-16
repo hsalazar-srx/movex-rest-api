@@ -1,5 +1,5 @@
 // Services/Db2QueryService.cs
-// Direct DB2/AS400 queries for part number intelligence endpoints that have no M3 MI equivalent.
+// Direct DB2/AS400 queries for endpoints that have no M3 MI equivalent.
 //
 // MITPOP reverse alias lookup: no MI program supports POPN→ITNO direction (confirmed 2026-05-11).
 //   MMS025MI.GetAlias / LstAlias are both ITNO-first. Custom DB2 query is the only solution.
@@ -7,6 +7,9 @@
 //
 // MITMAS next sequence: used to suggest the next available Scanfil APAC part number
 //   (LF + CUNO(2) + commodity(2) + seq(4)). No MI program exposes MAX(ITNO) by prefix.
+//
+// OCUSMA active customer list: no MI program lists customers for dropdown selection.
+//   Used by Oskar to populate the ECN customer field (S-task, 2026-06-16).
 //
 // SQL notes (IBM i 7.4):
 //   - Positional parameters (?) required — named parameters not supported by ODBC driver
@@ -32,7 +35,7 @@ public sealed class Db2QueryService
         _logger   = logger;
 
         if (string.IsNullOrWhiteSpace(_settings.ConnectionString))
-            _logger.LogWarning("Db2:ConnectionString is not configured — /api/mitpop/search and /api/mitmas/next-sequence will return 502 until it is set.");
+            _logger.LogWarning("Db2:ConnectionString is not configured — /api/parts/search-alias, /api/parts/next-sequence, and /api/customers/list will return 502 until it is set.");
     }
 
     // ── MITPOP reverse alias lookup ───────────────────────────────────────────
@@ -136,6 +139,42 @@ public sealed class Db2QueryService
         }
     }
 
+    // ── OCUSMA active customer list ───────────────────────────────────────────
+
+    /// <summary>
+    /// List active customers (OKSTAT = '20') for a company, ordered by customer number.
+    /// Used by Oskar to populate the ECN customer dropdown — OKCUNO is the 2-char code
+    /// embedded in Scanfil APAC part numbers (LF + CUNO + commodity + seq).
+    /// </summary>
+    public async Task<IReadOnlyList<CustomerRecord>> ListCustomersAsync(
+        string cono,
+        CancellationToken cancellationToken = default)
+    {
+        var schema = ResolveSchema(cono);
+
+        var sql = $"SELECT TRIM(OKCUNO) AS CUNO, TRIM(OKCUNM) AS NAME FROM {schema}.OCUSMA WHERE OKCONO = ? AND OKSTAT = ? ORDER BY TRIM(OKCUNO)";
+
+        _logger.LogDebug("Customer list: cono={Cono}", cono);
+
+        try
+        {
+            using var conn = new OdbcConnection(_settings.ConnectionString);
+            var cmd = new CommandDefinition(
+                sql,
+                BuildOdbcParams(new object[] { cono, "20" }),
+                commandTimeout: _settings.CommandTimeoutSeconds,
+                cancellationToken: cancellationToken);
+
+            var results = await conn.QueryAsync<CustomerRecord>(cmd);
+            return results.ToList();
+        }
+        catch (OdbcException ex)
+        {
+            _logger.LogError(ex, "DB2 error in customer list: cono={Cono}", cono);
+            throw;
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private string ResolveSchema(string cono) => cono.Trim() switch
@@ -165,3 +204,8 @@ public sealed record MitpopRecord(
     string? ALWT,
     string? ALWQ,
     string? E0PA);
+
+/// <summary>Record returned by OCUSMA active customer list.</summary>
+public sealed record CustomerRecord(
+    string CUNO,
+    string? NAME);

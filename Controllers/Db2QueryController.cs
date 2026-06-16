@@ -1,12 +1,17 @@
 // Controllers/Db2QueryController.cs
-// Custom DB2 direct-query endpoints for part number intelligence.
-// These endpoints have no M3 MI equivalent — they query MVXCDTA tables directly via ODBC.
+// Custom DB2 direct-query endpoints — resource-oriented routes, no M3 MI equivalent.
+// These query MVXCDTA tables directly via ODBC rather than going through an MI transaction.
 //
-// GET /api/mitpop/search      — reverse alias lookup (POPN → ITNO)
-// GET /api/mitmas/next-sequence — next available sequence for a part number prefix
+// GET /api/parts/search-alias — reverse alias lookup (POPN → ITNO), queries MITPOP
+// GET /api/parts/next-sequence — next available sequence for a part number prefix, queries MITMAS
+// GET /api/customers/list      — active customer list (ECN customer dropdown), queries OCUSMA
 //
-// Both endpoints are consumed by Oskar (S3-1, S3-2). See Oskar src/adapters/erp/movex.py
-// methods lookup_by_alias() and get_next_itno_sequence() for the caller contract.
+// Renamed 2026-06-16 from table-named routes (mitpop/search, mitmas/next-sequence) to
+// resource-oriented names, consistent with the new customers/list endpoint.
+//
+// All three endpoints are consumed by Oskar. See Oskar src/adapters/erp/movex.py
+// methods lookup_by_alias(), get_next_itno_sequence(), and list_customers() for the
+// caller contract.
 using System.Data.Odbc;
 using Microsoft.AspNetCore.Mvc;
 using Movex.API.Services;
@@ -42,7 +47,7 @@ public class Db2QueryController : ControllerBase
     /// <param name="popn">Customer / external part number (MITPOP.MPPOPN). Required.</param>
     /// <param name="e0pa">Optional partner/customer code filter (MITPOP.MPE0PA = OCUSMA.OKCUNO).</param>
     /// <param name="cancellationToken">Request cancellation token.</param>
-    [HttpGet("api/mitpop/search")]
+    [HttpGet("api/parts/search-alias")]
     [ProducesResponseType(typeof(MitpopSearchResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
@@ -114,7 +119,7 @@ public class Db2QueryController : ControllerBase
     /// <param name="cono">Company number (default: M3:DEFAULT_COMPANY from config)</param>
     /// <param name="prefix">Part number prefix to scan (e.g. "LFAP11"). Required.</param>
     /// <param name="cancellationToken">Request cancellation token.</param>
-    [HttpGet("api/mitmas/next-sequence")]
+    [HttpGet("api/parts/next-sequence")]
     [ProducesResponseType(typeof(NextSequenceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
@@ -161,6 +166,62 @@ public class Db2QueryController : ControllerBase
             });
         }
     }
+    /// <summary>
+    /// List active Movex customers (OCUSMA, OKSTAT='20') for ECN customer selection in Oskar.
+    ///
+    /// Returns OKCUNO (2-char code embedded in Scanfil APAC part numbers) + OKCUNM (name).
+    /// </summary>
+    /// <param name="cono">Company number (default: M3:DEFAULT_COMPANY from config)</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    [HttpGet("api/customers/list")]
+    [ProducesResponseType(typeof(CustomerListResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> ListCustomers(
+        [FromQuery] string? cono,
+        CancellationToken cancellationToken)
+    {
+        var conoResolved = string.IsNullOrWhiteSpace(cono) ? _defaultCono : cono.Trim();
+
+        try
+        {
+            var records = await _db2.ListCustomersAsync(conoResolved, cancellationToken);
+
+            return Ok(new CustomerListResponse
+            {
+                Success = true,
+                Cono    = conoResolved,
+                Data    = new CustomerListData
+                {
+                    Records = records.Select(r => new CustomerRecordDto
+                    {
+                        CUNO = r.CUNO,
+                        NAME = r.NAME,
+                    }).ToList(),
+                    Count = records.Count,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+        {
+            _logger.LogError(ex, "Db2:ConnectionString is not configured");
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                success = false,
+                error   = "DB2 connection string is not configured. Set Db2:ConnectionString in user-secrets (dev) or the IIS env var Db2__ConnectionString (UAT/prod).",
+                detail  = ex.Message,
+            });
+        }
+        catch (OdbcException ex)
+        {
+            _logger.LogError(ex, "DB2 error during customer list: cono={Cono}", conoResolved);
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                success = false,
+                error   = "DB2 query failed. Check DB2 connection string and IBM i ODBC driver.",
+                detail  = ex.Message,
+            });
+        }
+    }
 }
 
 // ── Response models ───────────────────────────────────────────────────────────
@@ -199,4 +260,23 @@ public sealed class NextSequenceResponse
 public sealed class NextSequenceData
 {
     public int NextSeq { get; init; }
+}
+
+public sealed class CustomerListResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public CustomerListData Data { get; init; } = new();
+}
+
+public sealed class CustomerListData
+{
+    public List<CustomerRecordDto> Records { get; init; } = [];
+    public int Count { get; init; }
+}
+
+public sealed class CustomerRecordDto
+{
+    public string  CUNO { get; init; } = string.Empty;
+    public string? NAME { get; init; }
 }

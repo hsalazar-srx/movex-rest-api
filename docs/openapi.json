@@ -6,7 +6,7 @@
     "version": "v1"
   },
   "paths": {
-    "/api/mitpop/search": {
+    "/api/parts/search-alias": {
       "get": {
         "tags": [
           "Db2Query"
@@ -85,7 +85,7 @@
         }
       }
     },
-    "/api/mitmas/next-sequence": {
+    "/api/parts/next-sequence": {
       "get": {
         "tags": [
           "Db2Query"
@@ -146,6 +146,49 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway"
+          }
+        }
+      }
+    },
+    "/api/customers/list": {
+      "get": {
+        "tags": [
+          "Db2Query"
+        ],
+        "summary": "List active Movex customers (OCUSMA, OKSTAT='20') for ECN customer selection in Oskar.\r\n            \r\nReturns OKCUNO (2-char code embedded in Scanfil APAC part numbers) + OKCUNM (name).",
+        "parameters": [
+          {
+            "name": "cono",
+            "in": "query",
+            "description": "Company number (default: M3:DEFAULT_COMPANY from config)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListResponse"
                 }
               }
             }
@@ -569,6 +612,53 @@
           "maxPoolSize": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomerListData": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRecordDto"
+            },
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomerListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/CustomerListData"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomerRecordDto": {
+        "type": "object",
+        "properties": {
+          "cuno": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

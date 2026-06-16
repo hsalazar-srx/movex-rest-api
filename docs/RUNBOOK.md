@@ -18,7 +18,7 @@
 - (Optional) `AllowedOrigins` for CORS
 - Logging level: `Logging__LogLevel__Default` (Information/Warning)
 - Swagger: `Swagger__Enabled` (set to true only if needed; requires `X-API-Key` in production)
-- **DB2 direct-query** (for `/api/mitpop/search` and `/api/mitmas/next-sequence`):
+- **DB2 direct-query** (for `/api/parts/search-alias`, `/api/parts/next-sequence`, `/api/customers/list`):
   - `Db2__ConnectionString` — IBM i ODBC connection string. Set via user-secrets (dev) or IIS env var (prod).
     Format: `Driver={IBM i Access ODBC Driver};System=<IP>;Uid=<user>;Pwd=<pass>;`
   - `Db2__SchemaCmp100` — schema for CONO 100 (default `MVXCDTA`)
