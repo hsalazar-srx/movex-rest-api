@@ -242,11 +242,13 @@ curl -X POST -H "X-API-Key: YOUR_KEY" \
 {
   "success": true,
   "data": {
+    "STAT": 20,
     "ITNO": "DC210055",
-    "ITDS": "Widget Type A",
+    "ITDS": "CAP CER 0.1UF 50V X7R 0402",
+    "ITTY": "030",
     "UNMS": "EA",
-    "ITCL": "001",
-    "STAT": "20"
+    "PRGP": "ORIKAN GROUP",
+    "ITCL": "CAPS CAPACITORS"
   }
 }
 ```
@@ -670,6 +672,7 @@ Can you help investigate?
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-05-25 | 1.1 | `GetItmBasic` response now includes `PRGP` (Procurement Group) and `ITCL` (Product Group) |
 | 2026-01-14 | 1.0 | Initial release |
 
 ---

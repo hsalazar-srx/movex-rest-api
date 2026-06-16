@@ -75,7 +75,7 @@ For day-to-day operations, see the runbook: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 - .NET 8.0 Runtime (for production on SRXWEBAPP1)
 - Network access to the M3 MI server (host/port)
 - IIS 10.0+ with ASP.NET Core Hosting Bundle (for SRXWEBAPP1)
-- **IBM i Access ODBC Driver** — required for DB2 direct-query endpoints (`/api/mitpop/search`, `/api/mitmas/next-sequence`). Install on SRXWEBAPP1 before first deployment if these endpoints are in use.
+- **IBM i Access ODBC Driver** — required for DB2 direct-query endpoints (`/api/parts/search-alias`, `/api/parts/next-sequence`, `/api/customers/list`). Install on SRXWEBAPP1 before first deployment if these endpoints are in use.
 
 ## Development Environment Setup
 
@@ -228,11 +228,13 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/MMS200MI/GetItmBasic" `
 **Expected Response:**
 ```json
 {
-  "CONO": "300",
-  "ITNO": "DC210055",
-  "ITDS": "Item Description",
   "STAT": 20,
-  "ITTY": "030"
+  "ITNO": "DC210055",
+  "ITDS": "CAP CER 0.1UF 50V X7R 0402",
+  "ITTY": "030",
+  "UNMS": "EA",
+  "PRGP": "ORIKAN GROUP",
+  "ITCL": "CAPS CAPACITORS"
 }
 ```
 
@@ -747,7 +749,7 @@ operations (confirmed 2026-05-11 — reverse alias lookup and MAX sequence are I
 Requires `Db2:ConnectionString` user-secret / environment variable and the IBM i Access ODBC
 driver installed on the host. See [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) for config details.
 
-- `GET /api/mitpop/search?cono=300&popn=ABC123[&e0pa=CUST01]`
+- `GET /api/parts/search-alias?cono=300&popn=ABC123[&e0pa=CUST01]`
   Reverse alias lookup: customer part number → Scanfil APAC ITNO(s).
   Queries `MVXCDTA.MITPOP WHERE MPPOPN = @popn`. Returns `data.records[]` + `data.count`.
   Response shape:
@@ -755,7 +757,7 @@ driver installed on the host. See [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) f
   { "data": { "records": [{ "ITNO": "LFAP110001", "ALWT": "1", "ALWQ": null, "E0PA": "CUST" }], "count": 1 } }
   ```
 
-- `GET /api/mitmas/next-sequence?cono=300&prefix=LFAP11`
+- `GET /api/parts/next-sequence?cono=300&prefix=LFAP11`
   Next available sequence for a part number prefix.
   Queries `MAX(TRIM(MMITNO)) FROM MVXCDTA.MITMAS WHERE MMITNO LIKE prefix%`.
   Returns `data.next_seq` (integer). Returns 1 when no items with this prefix exist.
@@ -763,6 +765,18 @@ driver installed on the host. See [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) f
   ```json
   { "data": { "next_seq": 5 } }
   ```
+
+- `GET /api/customers/list?cono=300`
+  Active Movex customers (`OCUSMA`, status = active) for ECN customer selection.
+  Returns `data.records[]` (`CUNO`, `NAME`) + `data.count`.
+  Response shape:
+  ```json
+  { "data": { "records": [{ "CUNO": "AA", "NAME": "Example Customer" }], "count": 1 } }
+  ```
+
+> **Note (2026-06-16):** these three routes were renamed from table-named paths
+> (`/api/mitpop/search`, `/api/mitmas/next-sequence`) to the resource-oriented names above,
+> for consistency with `/api/customers/list`.
 
 ### Pool Monitoring
 - `GET /api/transactions/pool-stats` — Connection pool statistics (requires API key)
@@ -838,10 +852,13 @@ curl -X POST http://localhost:5000/api/MMS200MI/GetItmBasic \
   "program": "MMS200MI",
   "transaction": "GetItmBasic",
   "data": {
-    "CONO": 100,
+    "STAT": 20,
     "ITNO": "ABC123",
     "ITDS": "Item Description",
-    "UNMS": "EA"
+    "ITTY": "030",
+    "UNMS": "EA",
+    "PRGP": "SUPPLIER GROUP",
+    "ITCL": "PRODUCT CLASS"
   },
   "timestamp": "2026-01-05T17:30:00Z"
 }
@@ -1087,28 +1104,13 @@ The API is **fully config-driven** - add new M3 programs and transactions via JS
         }
       ],
       "responseFields": [
-        {
-          "name": "CONO",
-          "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "description": "Company Number"
-        },
-        {
-          "name": "ITNO",
-          "position": 2,
-          "length": 40,
-          "type": "text",
-          "required": true,
-          "description": "Item Number"
-        },
-        {
-          "name": "ITDS",
-          "position": 3,
-          "length": 30,
-          "type": "text",
-          "description": "Item Description"
-        }
+        { "name": "STAT", "position": 1, "length": 2,  "type": "integer", "startIndex": 16,  "description": "Item Status" },
+        { "name": "ITNO", "position": 2, "length": 15, "type": "text",    "startIndex": 18,  "description": "Item Number" },
+        { "name": "ITDS", "position": 3, "length": 30, "type": "text",    "startIndex": 33,  "description": "Item Name" },
+        { "name": "ITTY", "position": 4, "length": 3,  "type": "text",    "startIndex": 268, "description": "Item Type" },
+        { "name": "UNMS", "position": 5, "length": 3,  "type": "text",    "startIndex": 189, "description": "Unit of Measure" },
+        { "name": "PRGP", "position": 6, "length": 12, "type": "text",    "startIndex": 215, "description": "Procurement Group" },
+        { "name": "ITCL", "position": 7, "length": 15, "type": "text",    "startIndex": 230, "description": "Product Group (Item Classification)" }
       ]
     }
   ]

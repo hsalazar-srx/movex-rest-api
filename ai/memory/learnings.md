@@ -5,6 +5,27 @@ Read this file at the start of each session. Newest-first.
 
 ---
 
+## 2026-06-16 — Customer list endpoint + route rename to resource-oriented paths
+
+**Context:** Oskar's ECN header needs a customer selector backed by real Movex customer data —
+no MI program lists customers, so this follows the same custom-DB2-query pattern as the existing
+MITPOP/MITMAS endpoints.
+
+**What was added:**
+- `GET /api/customers/list?cono=` — queries `OCUSMA` directly, filtered to active customers,
+  returns `CUNO` + `NAME`. New `Db2QueryService.ListCustomersAsync()` + `CustomerRecord` type.
+
+**Route rename (breaking change, coordinated with Oskar):**
+- `/api/mitpop/search` → `/api/parts/search-alias`
+- `/api/mitmas/next-sequence` → `/api/parts/next-sequence`
+
+Renamed for consistency — the original routes were named after the raw M3 table (`MITPOP`,
+`MITMAS`), leaking an implementation detail to API consumers. All three DB2 direct-query
+endpoints now use resource-oriented names. Oskar's `movex.py` adapter, tests, and docs were
+updated in the same change to avoid a window where the two sides are out of sync.
+
+---
+
 ## 2026-06-05 — DB2 direct-query endpoints (S3-1, S3-2 for Oskar)
 
 **Context:** Oskar needs two part number intelligence endpoints that have no M3 MI equivalent:
