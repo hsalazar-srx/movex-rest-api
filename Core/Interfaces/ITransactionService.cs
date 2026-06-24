@@ -16,13 +16,15 @@ namespace Movex.API.Core.Interfaces
         /// <param name="fieldValues">Dictionary of field names/positions to values</param>
         /// <param name="overrideUsername">Optional username override</param>
         /// <param name="overridePassword">Optional password override</param>
+        /// <param name="rawMode">When true, bypasses field parsing and returns the unmodified M3 response string.</param>
         /// <returns>Parsed response (Dictionary or raw string)</returns>
         Task<object> ExecuteTransactionAsync(
             string program,
             string transaction,
             Dictionary<string, string> fieldValues,
             string? overrideUsername = null,
-            string? overridePassword = null);
+            string? overridePassword = null,
+            bool rawMode = false);
 
         /// <summary>
         /// Get connection pool statistics

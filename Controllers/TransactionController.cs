@@ -622,7 +622,8 @@ namespace Movex.API.Controllers
         }
 
         /// <summary>
-        /// Execute transaction for a program (POST body)
+        /// Execute transaction for a program (POST body).
+        /// Append ?raw=true to receive the unmodified M3 response string instead of parsed JSON fields.
         /// </summary>
         [HttpPost("{program}/{transaction}")]
         public async Task<IActionResult> ExecuteTransaction(string program, string transaction, [FromBody] Dictionary<string, object> request)
@@ -640,10 +641,13 @@ namespace Movex.API.Controllers
                     return BadRequest(new { success = false, error = "Transaction is configured for GET. Use the GET endpoint with query parameters." });
                 }
 
+                bool rawMode = Request.Query.TryGetValue("raw", out var rawVal) &&
+                               rawVal.ToString().Equals("true", StringComparison.OrdinalIgnoreCase);
+
                 // Extract credentials if provided
                 string? username = null;
                 string? password = null;
-                
+
                 if (request.ContainsKey("username"))
                 {
                     username = request["username"]?.ToString();
@@ -663,7 +667,20 @@ namespace Movex.API.Controllers
                 }
 
                 // Execute transaction
-                var response = await _service.ExecuteTransactionAsync(program, transaction, fieldValues, username, password);
+                var response = await _service.ExecuteTransactionAsync(program, transaction, fieldValues, username, password, rawMode);
+
+                if (rawMode)
+                {
+                    _logger.LogInformation("[ExecuteTransaction] raw=true — returning unmodified M3 buffer for {Program}/{Transaction}", program, transaction);
+                    return Ok(new
+                    {
+                        success = true,
+                        program = program,
+                        transaction = transaction,
+                        raw = response?.ToString(),
+                        timestamp = DateTime.UtcNow
+                    });
+                }
 
                 object responseData = response switch
                 {
@@ -720,7 +737,8 @@ namespace Movex.API.Controllers
         }
 
         /// <summary>
-        /// Execute transaction for a program (GET query parameters)
+        /// Execute transaction for a program (GET query parameters).
+        /// Append &amp;raw=true to receive the unmodified M3 response string instead of parsed JSON fields.
         /// </summary>
         [HttpGet("{program}/{transaction}")]
         public async Task<IActionResult> ExecuteTransactionGet(string program, string transaction)
@@ -737,10 +755,28 @@ namespace Movex.API.Controllers
                     return BadRequest(new { success = false, error = "Transaction is not configured for GET. Use POST with a JSON body." });
                 }
 
-                // Bind query parameters to field values
-                var fieldValues = Request.Query.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+                bool rawMode = Request.Query.TryGetValue("raw", out var rawVal) &&
+                               rawVal.ToString().Equals("true", StringComparison.OrdinalIgnoreCase);
 
-                var response = await _service.ExecuteTransactionAsync(program, transaction, fieldValues);
+                // Bind query parameters to field values (exclude the raw flag itself)
+                var fieldValues = Request.Query
+                    .Where(kvp => !kvp.Key.Equals("raw", StringComparison.OrdinalIgnoreCase))
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+
+                var response = await _service.ExecuteTransactionAsync(program, transaction, fieldValues, rawMode: rawMode);
+
+                if (rawMode)
+                {
+                    _logger.LogInformation("[ExecuteTransactionGet] raw=true — returning unmodified M3 buffer for {Program}/{Transaction}", program, transaction);
+                    return Ok(new
+                    {
+                        success = true,
+                        program = program,
+                        transaction = transaction,
+                        raw = response?.ToString(),
+                        timestamp = DateTime.UtcNow
+                    });
+                }
 
                 object responseData = response switch
                 {
