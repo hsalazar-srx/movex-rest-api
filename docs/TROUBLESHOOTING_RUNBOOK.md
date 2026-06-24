@@ -429,7 +429,30 @@ Invoke-RestMethod -Uri "http://SRXWEBAPP1:5000/health"
 
 ## 4. M3 Network Connectivity / Firewall
 
-### Symptoms
+### ⚠️ Dev Machine Prerequisite — GlobalProtect VPN
+
+**All Scanfil APAC infrastructure (`150.3.2.x`, IBM i AS400, M3 MI server) is on the office LAN.**
+When developing from outside the office you must connect **GlobalProtect VPN** first.
+
+**Symptoms when VPN is off:**
+
+| Error | Meaning |
+|---|---|
+| `comm rc=11001 - CWBCO1004 - Remote address could not be resolved` | DB2/ODBC can't reach IBM i — VPN off |
+| `Connection refused` on port 6300 | M3 MI socket unreachable — VPN off |
+| `ping 150.3.2.100` → 100% packet loss | No route to office LAN — VPN off |
+
+**Quick check:**
+```powershell
+# If this fails, connect GlobalProtect before doing anything else
+Test-NetConnection -ComputerName 150.3.2.100 -Port 6300 -InformationLevel Quiet
+```
+
+**Fix:** Connect GlobalProtect, then restart the API so it picks up a fresh connection pool.
+
+---
+
+### Symptoms (Production / SRXWEBAPP1)
 - API returns **502 Bad Gateway** or **503 Service Unavailable**
 - All requests immediately fail (circuit breaker opens)
 - Error: `Connection refused` or `No route to host`

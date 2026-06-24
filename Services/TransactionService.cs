@@ -57,7 +57,8 @@ namespace Movex.API.Services
             string transaction,
             Dictionary<string, string> fieldValues,
             string? overrideUsername = null,
-            string? overridePassword = null)
+            string? overridePassword = null,
+            bool rawMode = false)
         {
             if (string.IsNullOrWhiteSpace(program))
             {
@@ -131,8 +132,8 @@ namespace Movex.API.Services
                     return rawResponse ?? string.Empty;
                 }
 
-                // Parse response if response fields are configured
-                if (txDef.ResponseFields?.Any() == true)
+                // Parse response if response fields are configured (skipped when rawMode=true)
+                if (!rawMode && txDef.ResponseFields?.Any() == true)
                 {
                     if (txDef.ReturnsList)
                     {

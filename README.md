@@ -499,8 +499,10 @@ dotnet run
 | Issue | Solution |
 |-------|----------|
 | **"M3:HOST is null"** | Run `dotnet user-secrets list` to verify secrets are set |
-| **401 Unauthorized** | Check API key: `dotnet user-secrets list \| Select-String ApiKeys:Primary` |
-| **Connection refused to M3** | Verify M3 server is reachable: `Test-NetConnection 150.3.2.100 -Port 6300` |
+| **401 Unauthorized** | Check `ASPNETCORE_ENVIRONMENT=Development` is set — Production mode ignores user-secrets |
+| **503 / API key not configured** | Same as above — user-secrets only load in Development mode |
+| **Connection refused to M3 / DB2 comm rc=11001** | **Connect GlobalProtect VPN** — `150.3.2.x` is office LAN only. Verify: `Test-NetConnection 150.3.2.100 -Port 6300` |
+| **Build errors: file locked** | A previous instance is still running — `Stop-Process -Name Movex.API -Force` |
 | **Build errors** | Run `dotnet clean` then `dotnet restore` and `dotnet build` |
 | **Port already in use** | Change port in `appsettings.json` or `launchSettings.json` |
 | **Logs not appearing** | Check `logs/` directory exists; verify Serilog config in `appsettings.json` |
