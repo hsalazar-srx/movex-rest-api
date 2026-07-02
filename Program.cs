@@ -135,28 +135,35 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Config-driven REST API for M3 MOVEX transactions and workflows."
     });
 
-    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
-    {
-        Description = "API key required. Use the X-API-Key header.",
-        Name = "X-API-Key",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey
-    });
+    // Register a Swagger security definition for every named API key in config.
+    // Keys whose names end in "AllowedTransactions" are skip-listed — they are arrays, not keys.
+    // Adding a new project key to appsettings.json is enough; no code change required here.
+    var apiKeySection = builder.Configuration.GetSection("ApiKeys");
+    var namedKeys = apiKeySection.GetChildren()
+        .Where(c => !c.Key.EndsWith("AllowedTransactions", StringComparison.OrdinalIgnoreCase)
+                 && c.Value != null);
 
-    options.AddSecurityDefinition("AdminKey", new OpenApiSecurityScheme
+    foreach (var keyEntry in namedKeys)
     {
-        Description = "Admin key for rotation endpoints. Use the X-Admin-Key header.",
-        Name = "X-Admin-Key",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey
-    });
+        var headerName = keyEntry.Key.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+            ? "X-Admin-Key"
+            : "X-API-Key";
+
+        options.AddSecurityDefinition(keyEntry.Key, new OpenApiSecurityScheme
+        {
+            Description = $"{keyEntry.Key} key — send as {headerName} header.",
+            Name = headerName,
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey
+        });
+    }
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Primary" }
             },
             Array.Empty<string>()
         }

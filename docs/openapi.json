@@ -570,6 +570,88 @@
           }
         }
       }
+    },
+    "/wms/{program}/{transaction}": {
+      "post": {
+        "tags": [
+          "WmsTransaction"
+        ],
+        "summary": "Execute a permitted M3 transaction via POST body.",
+        "parameters": [
+          {
+            "name": "program",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transaction",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "WmsTransaction"
+        ],
+        "summary": "Execute a permitted M3 transaction via GET query parameters.",
+        "parameters": [
+          {
+            "name": "program",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transaction",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -837,6 +919,12 @@
   "security": [
     {
       "ApiKey": [ ]
+    }
+  ],
+  "tags": [
+    {
+      "name": "WmsTransaction",
+      "description": "WMS API surface — M3 transactions available to the Smart Warehouse system.\r\nPermitted transactions are declared in ApiKeys:WmsAllowedTransactions in config.\r\nPrimary and Admin key holders can also call these routes without restriction."
     }
   ]
 }

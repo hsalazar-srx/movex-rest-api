@@ -152,8 +152,23 @@ namespace Movex.API.Services
                 return records;
             }
 
-            // Fallback: fixed-length records based on total field length
-            int recordLength = fieldConfigs.Sum(f => Math.Max(f.Length, 0));
+            // Determine record length from field layout.
+            // When startIndex values are present the record boundary is the end of the
+            // last absolute-positioned field, not the sum of field lengths (which would
+            // be wrong for sparse/overlapping layouts).
+            int recordLength;
+            bool hasAbsoluteIndex = fieldConfigs.Any(f => f.StartIndex.GetValueOrDefault() > 0);
+            if (hasAbsoluteIndex)
+            {
+                recordLength = fieldConfigs
+                    .Where(f => f.StartIndex.GetValueOrDefault() > 0)
+                    .Max(f => f.StartIndex.GetValueOrDefault() - 1 + f.Length);
+            }
+            else
+            {
+                recordLength = fieldConfigs.Sum(f => Math.Max(f.Length, 0));
+            }
+
             if (recordLength <= 0)
             {
                 // Cannot determine how to split; return a single parsed record
@@ -169,9 +184,21 @@ namespace Movex.API.Services
             {
                 int remaining = Math.Min(recordLength, rawResponse.Length - offset);
                 if (remaining <= 0) break;
+
+                // Skip chunks that are entirely whitespace — M3 pads the final buffer
                 string chunk = rawResponse.Substring(offset, remaining);
+                if (string.IsNullOrWhiteSpace(chunk)) break;
+
                 var parsed = ParseResponse(chunk, fieldConfigs);
-                if (parsed.Count > 0)
+
+                // Discard records where every value is null or zero/empty — trailing buffer padding
+                bool hasAnyValue = parsed.Values.Any(v =>
+                    v != null &&
+                    !(v is string s && string.IsNullOrEmpty(s)) &&
+                    !(v is decimal d && d == 0m) &&
+                    !(v is int i && i == 0));
+
+                if (parsed.Count > 0 && hasAnyValue)
                 {
                     records.Add(parsed);
                 }

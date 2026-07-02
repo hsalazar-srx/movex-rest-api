@@ -76,12 +76,10 @@ namespace Movex.API
             _defaultProgram = defaultProgram;
             _options = options ?? new MvxConnectionPoolOptions();
 
-            _poolSemaphore = new SemaphoreSlim(_options.MaxPoolSize, _options.MaxPoolSize);
+            var semaphoreMax = Math.Max(1, _options.MaxPoolSize);
+            _poolSemaphore = new SemaphoreSlim(semaphoreMax, semaphoreMax);
 
             Console.WriteLine($"[ConnectionPool] Initialized with Min={_options.MinPoolSize}, Max={_options.MaxPoolSize}, IdleTimeout={_options.ConnectionIdleTimeoutSeconds}s");
-
-            // Pre-create minimum connections
-            InitializeMinConnections();
 
             // Start cleanup timer (run every minute)
             _cleanupTimer = new Timer(CleanupIdleConnections, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
