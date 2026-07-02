@@ -25,6 +25,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Exclude the test project subdirectory from the main project's file glob -->
+    <Compile Remove="Movex.API.Tests\**" />
+    <Content Remove="Movex.API.Tests\**" />
+    <EmbeddedResource Remove="Movex.API.Tests\**" />
+    <None Remove="Movex.API.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="mvxsock.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
