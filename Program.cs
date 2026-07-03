@@ -96,9 +96,9 @@ var poolOptions = new MvxConnectionPoolOptions
 
 if (isSwaggerGeneration)
 {
+    // Swagger generation only needs metadata — it never executes transactions.
+    // Keep pool options at valid values; the pool won't be used but must not be constructed with MaxPoolSize=0.
     poolOptions.MinPoolSize = 0;
-    poolOptions.MaxPoolSize = 0;
-    poolOptions.ConnectionIdleTimeoutSeconds = 1;
     poolOptions.AcquireTimeoutSeconds = 1;
     poolOptions.ValidateOnAcquire = false;
 }

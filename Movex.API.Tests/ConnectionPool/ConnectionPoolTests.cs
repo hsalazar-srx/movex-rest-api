@@ -38,15 +38,15 @@ public class ConnectionPoolTests
     }
 
     [Fact]
-    public async Task AcquireConnectionAsync_throws_when_zero_max_pool_size()
+    public void Pool_clamps_zero_max_to_one_so_acquire_can_proceed()
     {
-        // With MaxPoolSize=0, semaphore max is clamped to 1 but _totalConnections < 0 is always false
-        // so it should immediately fail with timeout or pool-limit error
+        // MaxPoolSize=0 (Swagger generation mode) must be normalised to 1 at construction
+        // so that AcquireConnectionAsync does not immediately throw "Pool size limit reached"
         using var pool = new MvxConnectionPool("host", 0, "u", "p", options: PoolOptions(max: 0));
 
-        var act = async () => await pool.AcquireConnectionAsync();
+        var stats = pool.GetStats();
 
-        await act.Should().ThrowAsync<Exception>();
+        stats.MaxPoolSize.Should().Be(1);
     }
 
     [Fact]

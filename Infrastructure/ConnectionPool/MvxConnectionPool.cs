@@ -75,9 +75,11 @@ namespace Movex.API
             _defaultLibrary = defaultLibrary;
             _defaultProgram = defaultProgram;
             _options = options ?? new MvxConnectionPoolOptions();
+            // Ensure MaxPoolSize is always at least 1 — a zero value (e.g. from Swagger
+            // generation mode) would make every AcquireConnection call throw immediately.
+            if (_options.MaxPoolSize < 1) _options.MaxPoolSize = 1;
 
-            var semaphoreMax = Math.Max(1, _options.MaxPoolSize);
-            _poolSemaphore = new SemaphoreSlim(semaphoreMax, semaphoreMax);
+            _poolSemaphore = new SemaphoreSlim(_options.MaxPoolSize, _options.MaxPoolSize);
 
             Console.WriteLine($"[ConnectionPool] Initialized with Min={_options.MinPoolSize}, Max={_options.MaxPoolSize}, IdleTimeout={_options.ConnectionIdleTimeoutSeconds}s");
 
