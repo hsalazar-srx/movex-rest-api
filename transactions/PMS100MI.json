@@ -43,111 +43,25 @@
         }
       ],
       "responseFields": [
-        {
-          "name": "CONO",
-          "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "description": "Company number"
-        },
-        {
-          "name": "FACI",
-          "position": 2,
-          "length": 3,
-          "type": "text",
-          "description": "Facility"
-        },
-        {
-          "name": "PRNO",
-          "position": 3,
-          "length": 15,
-          "type": "text",
-          "description": "Product number"
-        },
-        {
-          "name": "MFNO",
-          "position": 4,
-          "length": 7,
-          "type": "numeric",
-          "description": "Manufacturing order number"
-        },
-        {
-          "name": "STDT",
-          "position": 5,
-          "length": 8,
-          "type": "date",
-          "description": "Start date (YYYYMMDD)"
-        },
-        {
-          "name": "FIDT",
-          "position": 6,
-          "length": 8,
-          "type": "date",
-          "description": "Finish date (YYYYMMDD)"
-        },
-        {
-          "name": "ORQT",
-          "position": 7,
-          "length": 17,
-          "type": "decimal",
-          "description": "Order quantity (6 decimals)"
-        },
-        {
-          "name": "MAQT",
-          "position": 8,
-          "length": 17,
-          "type": "decimal",
-          "description": "Manufactured quantity (6 decimals)"
-        },
-        {
-          "name": "WHST",
-          "position": 9,
-          "length": 2,
-          "type": "text",
-          "description": "MO status (10=planned, 20=released, 40=started, 90=completed)"
-        },
-        {
-          "name": "WHLO",
-          "position": 10,
-          "length": 3,
-          "type": "text",
-          "description": "Warehouse"
-        },
-        {
-          "name": "RORL",
-          "position": 11,
-          "length": 3,
-          "type": "numeric",
-          "description": "Reference order line"
-        },
-        {
-          "name": "CHNO",
-          "position": 12,
-          "length": 3,
-          "type": "numeric",
-          "description": "Change number"
-        },
-        {
-          "name": "CFIN",
-          "position": 13,
-          "length": 7,
-          "type": "numeric",
-          "description": "Config number"
-        },
-        {
-          "name": "SCHN",
-          "position": 14,
-          "length": 11,
-          "type": "numeric",
-          "description": "Schedule number"
-        },
-        {
-          "name": "DUED",
-          "position": 15,
-          "length": 8,
-          "type": "date",
-          "description": "Due date (YYYYMMDD)"
-        }
+        { "name": "CONO", "position": 1,  "length": 3,  "startIndex": 16,  "type": "numeric", "description": "Company number" },
+        { "name": "FACI", "position": 2,  "length": 3,  "startIndex": 19,  "type": "text",    "description": "Facility" },
+        { "name": "MFNO", "position": 3,  "length": 7,  "startIndex": 22,  "type": "numeric", "description": "Manufacturing order number" },
+        { "name": "PRNO", "position": 4,  "length": 15, "startIndex": 29,  "type": "text",    "description": "Product number" },
+        { "name": "ITDS", "position": 5,  "length": 30, "startIndex": 44,  "type": "text",    "description": "Product description" },
+        { "name": "RORC", "position": 6,  "length": 1,  "startIndex": 74,  "type": "numeric", "description": "Reference order category" },
+        { "name": "RORN", "position": 7,  "length": 10, "startIndex": 75,  "type": "numeric", "description": "Reference order number" },
+        { "name": "RORL", "position": 8,  "length": 6,  "startIndex": 85,  "type": "numeric", "description": "Reference order line" },
+        { "name": "WHST", "position": 9,  "length": 2,  "startIndex": 91,  "type": "text",    "description": "MO status (10=planned, 20=released, 40=started, 90=completed)" },
+        { "name": "ORQT", "position": 10, "length": 16, "startIndex": 94,  "type": "decimal", "description": "Ordered quantity" },
+        { "name": "MAQT", "position": 11, "length": 16, "startIndex": 110, "type": "decimal", "description": "Manufactured quantity" },
+        { "name": "STDT", "position": 12, "length": 10, "startIndex": 127, "type": "date",    "description": "Planned start date" },
+        { "name": "MSTI", "position": 13, "length": 4,  "startIndex": 137, "type": "numeric", "description": "Planned start time (HHMM)" },
+        { "name": "FIDT", "position": 14, "length": 10, "startIndex": 141, "type": "date",    "description": "Planned finish date" },
+        { "name": "MFTI", "position": 15, "length": 4,  "startIndex": 151, "type": "numeric", "description": "Planned finish time (HHMM)" },
+        { "name": "DUED", "position": 16, "length": 10, "startIndex": 365, "type": "date",    "description": "Due date" },
+        { "name": "WHLO", "position": 17, "length": 3,  "startIndex": 407, "type": "text",    "description": "Warehouse" },
+        { "name": "CHNO", "position": 18, "length": 3,  "startIndex": 335, "type": "numeric", "description": "Change number" },
+        { "name": "SCHN", "position": 19, "length": 11, "startIndex": 443, "type": "numeric", "description": "Schedule number" }
       ]
     },
     {
@@ -224,7 +138,7 @@
           "name": "SCHH",
           "position": 9,
           "length": 3,
-          "type": "numeric",
+          "type": "text",
           "required": false,
           "description": "Scheduling horizon (days)"
         },
@@ -254,104 +168,25 @@
         }
       ],
       "responseFields": [
-        {
-          "name": "CONO",
-          "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "description": "Company number"
-        },
-        {
-          "name": "FACI",
-          "position": 2,
-          "length": 3,
-          "type": "text",
-          "description": "Facility"
-        },
-        {
-          "name": "PRNO",
-          "position": 3,
-          "length": 15,
-          "type": "text",
-          "description": "Product number"
-        },
-        {
-          "name": "MFNO",
-          "position": 4,
-          "length": 7,
-          "type": "numeric",
-          "description": "Manufacturing order number"
-        },
-        {
-          "name": "STDT",
-          "position": 5,
-          "length": 8,
-          "type": "date",
-          "description": "Start date (YYYYMMDD)"
-        },
-        {
-          "name": "FIDT",
-          "position": 6,
-          "length": 8,
-          "type": "date",
-          "description": "Finish date (YYYYMMDD)"
-        },
-        {
-          "name": "ORQT",
-          "position": 7,
-          "length": 17,
-          "type": "decimal",
-          "description": "Order quantity (6 decimals)"
-        },
-        {
-          "name": "MAQT",
-          "position": 8,
-          "length": 17,
-          "type": "decimal",
-          "description": "Manufactured quantity (6 decimals)"
-        },
-        {
-          "name": "WHST",
-          "position": 9,
-          "length": 2,
-          "type": "text",
-          "description": "MO status"
-        },
-        {
-          "name": "WHLO",
-          "position": 10,
-          "length": 3,
-          "type": "text",
-          "description": "Warehouse"
-        },
-        {
-          "name": "RORL",
-          "position": 11,
-          "length": 3,
-          "type": "numeric",
-          "description": "Reference order line"
-        },
-        {
-          "name": "CHNO",
-          "position": 12,
-          "length": 3,
-          "type": "numeric",
-          "description": "Change number"
-        },
-        {
-          "name": "SCHN",
-          "position": 13,
-          "length": 11,
-          "type": "numeric",
-          "description": "Schedule number"
-        },
-        {
-          "name": "DUED",
-          "position": 14,
-          "length": 8,
-          "type": "date",
-          "description": "Due date (YYYYMMDD)"
-        }
+        { "name": "CONO", "position": 1,  "length": 3,  "startIndex": 16,  "type": "numeric", "description": "Company number" },
+        { "name": "FACI", "position": 2,  "length": 3,  "startIndex": 19,  "type": "text",    "description": "Facility" },
+        { "name": "MFNO", "position": 3,  "length": 7,  "startIndex": 22,  "type": "numeric", "description": "Manufacturing order number" },
+        { "name": "PRNO", "position": 4,  "length": 15, "startIndex": 29,  "type": "text",    "description": "Product number" },
+        { "name": "ITDS", "position": 5,  "length": 30, "startIndex": 44,  "type": "text",    "description": "Product description" },
+        { "name": "RORC", "position": 6,  "length": 1,  "startIndex": 74,  "type": "numeric", "description": "Reference order category" },
+        { "name": "RORN", "position": 7,  "length": 10, "startIndex": 75,  "type": "numeric", "description": "Reference order number" },
+        { "name": "RORL", "position": 8,  "length": 6,  "startIndex": 85,  "type": "numeric", "description": "Reference order line" },
+        { "name": "WHST", "position": 9,  "length": 2,  "startIndex": 91,  "type": "text",    "description": "MO status (10=planned, 20=released, 40=started, 90=completed)" },
+        { "name": "ORQT", "position": 10, "length": 16, "startIndex": 94,  "type": "decimal", "description": "Ordered quantity" },
+        { "name": "MAQT", "position": 11, "length": 16, "startIndex": 110, "type": "decimal", "description": "Manufactured quantity" },
+        { "name": "STDT", "position": 12, "length": 10, "startIndex": 127, "type": "date",    "description": "Planned start date" },
+        { "name": "MSTI", "position": 13, "length": 4,  "startIndex": 137, "type": "numeric", "description": "Planned start time (HHMM)" },
+        { "name": "FIDT", "position": 14, "length": 10, "startIndex": 141, "type": "date",    "description": "Planned finish date" },
+        { "name": "MFTI", "position": 15, "length": 4,  "startIndex": 151, "type": "numeric", "description": "Planned finish time (HHMM)" },
+        { "name": "DUED", "position": 16, "length": 10, "startIndex": 365, "type": "date",    "description": "Due date" },
+        { "name": "WHLO", "position": 17, "length": 3,  "startIndex": 407, "type": "text",    "description": "Warehouse" },
+        { "name": "CHNO", "position": 18, "length": 3,  "startIndex": 335, "type": "numeric", "description": "Change number" },
+        { "name": "SCHN", "position": 19, "length": 11, "startIndex": 443, "type": "numeric", "description": "Schedule number" }
       ]
     },
     {
@@ -402,83 +237,17 @@
         }
       ],
       "responseFields": [
-        {
-          "name": "CONO",
-          "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "description": "Company number"
-        },
-        {
-          "name": "FACI",
-          "position": 2,
-          "length": 3,
-          "type": "text",
-          "description": "Facility"
-        },
-        {
-          "name": "PRNO",
-          "position": 3,
-          "length": 15,
-          "type": "text",
-          "description": "Product number"
-        },
-        {
-          "name": "MFNO",
-          "position": 4,
-          "length": 7,
-          "type": "numeric",
-          "description": "Manufacturing order number"
-        },
-        {
-          "name": "OPNO",
-          "position": 5,
-          "length": 4,
-          "type": "numeric",
-          "description": "Operation number"
-        },
-        {
-          "name": "PLGR",
-          "position": 6,
-          "length": 8,
-          "type": "text",
-          "description": "Work centre"
-        },
-        {
-          "name": "OPDS",
-          "position": 7,
-          "length": 30,
-          "type": "text",
-          "description": "Operation description"
-        },
-        {
-          "name": "STDT",
-          "position": 8,
-          "length": 8,
-          "type": "date",
-          "description": "Start date (YYYYMMDD)"
-        },
-        {
-          "name": "FIDT",
-          "position": 9,
-          "length": 8,
-          "type": "date",
-          "description": "Finish date (YYYYMMDD)"
-        },
-        {
-          "name": "PITI",
-          "position": 10,
-          "length": 11,
-          "type": "decimal",
-          "description": "Run time (minutes, 2 decimals)"
-        },
-        {
-          "name": "WOST",
-          "position": 11,
-          "length": 2,
-          "type": "text",
-          "description": "Operation status"
-        }
+        { "name": "CONO", "position": 1,  "length": 3,  "startIndex": 16,  "type": "numeric", "description": "Company number" },
+        { "name": "FACI", "position": 2,  "length": 3,  "startIndex": 19,  "type": "text",    "description": "Facility" },
+        { "name": "PRNO", "position": 3,  "length": 15, "startIndex": 22,  "type": "text",    "description": "Product number" },
+        { "name": "MFNO", "position": 4,  "length": 7,  "startIndex": 37,  "type": "numeric", "description": "Manufacturing order number" },
+        { "name": "OPNO", "position": 5,  "length": 4,  "startIndex": 44,  "type": "numeric", "description": "Operation number" },
+        { "name": "PLGR", "position": 6,  "length": 8,  "startIndex": 48,  "type": "text",    "description": "Work centre" },
+        { "name": "OPDS", "position": 7,  "length": 30, "startIndex": 56,  "type": "text",    "description": "Operation description" },
+        { "name": "STDT", "position": 8,  "length": 8,  "startIndex": 86,  "type": "date",    "description": "Start date (YYYYMMDD)" },
+        { "name": "FIDT", "position": 9,  "length": 8,  "startIndex": 94,  "type": "date",    "description": "Finish date (YYYYMMDD)" },
+        { "name": "PITI", "position": 10, "length": 11, "startIndex": 102, "type": "decimal", "description": "Run time (minutes, 2 decimals)" },
+        { "name": "WOST", "position": 11, "length": 2,  "startIndex": 113, "type": "text",    "description": "Operation status" }
       ]
     },
     {
@@ -814,41 +583,11 @@
         }
       ],
       "responseFields": [
-        {
-          "name": "CONO",
-          "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "description": "Company number"
-        },
-        {
-          "name": "FACI",
-          "position": 2,
-          "length": 3,
-          "type": "text",
-          "description": "Facility"
-        },
-        {
-          "name": "PRNO",
-          "position": 3,
-          "length": 15,
-          "type": "text",
-          "description": "Product number"
-        },
-        {
-          "name": "MFNO",
-          "position": 4,
-          "length": 7,
-          "type": "numeric",
-          "description": "Manufacturing order number"
-        },
-        {
-          "name": "WHST",
-          "position": 5,
-          "length": 2,
-          "type": "text",
-          "description": "MO status"
-        }
+        { "name": "CONO", "position": 1, "length": 3,  "startIndex": 16, "type": "numeric", "description": "Company number" },
+        { "name": "FACI", "position": 2, "length": 3,  "startIndex": 19, "type": "text",    "description": "Facility" },
+        { "name": "PRNO", "position": 3, "length": 15, "startIndex": 22, "type": "text",    "description": "Product number" },
+        { "name": "MFNO", "position": 4, "length": 7,  "startIndex": 37, "type": "numeric", "description": "Manufacturing order number" },
+        { "name": "WHST", "position": 5, "length": 2,  "startIndex": 44, "type": "text",    "description": "MO status" }
       ]
     }
   ]

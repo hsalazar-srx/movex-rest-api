@@ -192,7 +192,9 @@ namespace Movex.API.Services
                     else
                     {
                         var parsedResponse = _responseParser.ParseResponse(safeRawResponse, txDef.ResponseFields);
-                        if (startsWithOk)
+                        bool startsWithRep = safeRawResponse.TrimStart().StartsWith("REP", StringComparison.OrdinalIgnoreCase);
+                        // OK = explicit success; REP = data record returned — both indicate success for single-record calls
+                        if (startsWithOk || startsWithRep)
                         {
                             EnsureM3SuccessFields(parsedResponse);
                         }
