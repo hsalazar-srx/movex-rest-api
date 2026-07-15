@@ -183,8 +183,10 @@ namespace Movex.API.Services
                             currentRaw = nextRaw;
                         }
 
-                        if (!cursorExhausted)
-                            pooled.IsHealthy = false;
+                        // Always discard list connections — M3 sockets retain list session
+                        // state even after the OK terminator, and will respond REP (not OK)
+                        // to the next transaction on the same socket, silently dropping writes.
+                        pooled.IsHealthy = false;
 
                         _logger.LogInformation("List transaction completed, {RecordCount} records", allRecords.Count);
                         return allRecords;
@@ -252,10 +254,9 @@ namespace Movex.API.Services
                 return;
             }
 
-            if (!parsedResponse.ContainsKey("MSID"))
-            {
-                parsedResponse["MSID"] = "000";
-            }
+            // Always overwrite — the parser may have read "OK " from the buffer into MSID
+            // when responseFields are defined but the response is just an OK/NOK prefix.
+            parsedResponse["MSID"] = "000";
 
             if (!parsedResponse.ContainsKey("MSDT"))
             {

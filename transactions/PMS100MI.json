@@ -195,46 +195,12 @@
       "httpMethod": "POST",
       "returnsList": true,
       "fields": [
-        {
-          "name": "CONO",
-          "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "required": true,
-          "description": "Company number"
-        },
-        {
-          "name": "FACI",
-          "position": 2,
-          "length": 3,
-          "type": "text",
-          "required": true,
-          "description": "Facility"
-        },
-        {
-          "name": "PRNO",
-          "position": 3,
-          "length": 15,
-          "type": "text",
-          "required": false,
-          "description": "Product number (blank = all)"
-        },
-        {
-          "name": "MFNO",
-          "position": 4,
-          "length": 7,
-          "type": "numeric",
-          "required": false,
-          "description": "Manufacturing order number (blank = all)"
-        },
-        {
-          "name": "WHGR",
-          "position": 5,
-          "length": 3,
-          "type": "text",
-          "required": false,
-          "description": "Warehouse group"
-        }
+        { "name": "CONO", "position": 1, "length": 3,  "type": "numeric", "required": true,  "description": "Company number" },
+        { "name": "FACI", "position": 2, "length": 3,  "type": "text",    "required": true,  "description": "Facility" },
+        { "name": "PRNO", "position": 3, "length": 15, "type": "text",    "required": true,  "description": "Product number (required with MFNO)" },
+        { "name": "MFNO", "position": 4, "length": 7,  "type": "numeric", "required": true,  "description": "Manufacturing order number (required with PRNO)" },
+        { "name": "REAR", "position": 5, "length": 8,  "type": "text",    "required": false, "description": "Planning area" },
+        { "name": "WHGR", "position": 6, "length": 15, "type": "text",    "required": false, "description": "Warehouse group" }
       ],
       "responseFields": [
         { "name": "CONO", "position": 1,  "length": 3,  "startIndex": 16,  "type": "numeric", "description": "Company number" },
@@ -242,12 +208,24 @@
         { "name": "PRNO", "position": 3,  "length": 15, "startIndex": 22,  "type": "text",    "description": "Product number" },
         { "name": "MFNO", "position": 4,  "length": 7,  "startIndex": 37,  "type": "numeric", "description": "Manufacturing order number" },
         { "name": "OPNO", "position": 5,  "length": 4,  "startIndex": 44,  "type": "numeric", "description": "Operation number" },
-        { "name": "PLGR", "position": 6,  "length": 8,  "startIndex": 48,  "type": "text",    "description": "Work centre" },
-        { "name": "OPDS", "position": 7,  "length": 30, "startIndex": 56,  "type": "text",    "description": "Operation description" },
-        { "name": "STDT", "position": 8,  "length": 8,  "startIndex": 86,  "type": "date",    "description": "Start date (YYYYMMDD)" },
-        { "name": "FIDT", "position": 9,  "length": 8,  "startIndex": 94,  "type": "date",    "description": "Finish date (YYYYMMDD)" },
-        { "name": "PITI", "position": 10, "length": 11, "startIndex": 102, "type": "decimal", "description": "Run time (minutes, 2 decimals)" },
-        { "name": "WOST", "position": 11, "length": 2,  "startIndex": 113, "type": "text",    "description": "Operation status" }
+        { "name": "ITDS", "position": 6,  "length": 30, "startIndex": 48,  "type": "text",    "description": "Item description" },
+        { "name": "OPDS", "position": 7,  "length": 30, "startIndex": 78,  "type": "text",    "description": "Operation description" },
+        { "name": "VVOST","position": 8,  "length": 2,  "startIndex": 108, "type": "text",    "description": "Operation status" },
+        { "name": "PLG1", "position": 9,  "length": 8,  "startIndex": 112, "type": "text",    "description": "APP work center" },
+        { "name": "PLGR", "position": 10, "length": 8,  "startIndex": 120, "type": "text",    "description": "Finite scheduled resource" },
+        { "name": "REAR", "position": 11, "length": 8,  "startIndex": 136, "type": "text",    "description": "Planning area" },
+        { "name": "PRIO", "position": 12, "length": 1,  "startIndex": 144, "type": "text",    "description": "Planning area priority" },
+        { "name": "SETI", "position": 13, "length": 10, "startIndex": 151, "type": "numeric", "description": "Setup time" },
+        { "name": "MAQT", "position": 14, "length": 16, "startIndex": 221, "type": "decimal", "description": "Manufactured quantity" },
+        { "name": "ORQT", "position": 15, "length": 16, "startIndex": 253, "type": "decimal", "description": "Ordered quantity" },
+        { "name": "NNQT", "position": 16, "length": 16, "startIndex": 269, "type": "decimal", "description": "Completed quantity" },
+        { "name": "NXOP", "position": 17, "length": 4,  "startIndex": 304, "type": "numeric", "description": "Next operation number" },
+        { "name": "STDT", "position": 18, "length": 10, "startIndex": 353, "type": "date",    "description": "Planned start date" },
+        { "name": "MSTI", "position": 19, "length": 4,  "startIndex": 363, "type": "numeric", "description": "Planned start time (HHMM)" },
+        { "name": "FIDT", "position": 20, "length": 10, "startIndex": 367, "type": "date",    "description": "Planned finish date" },
+        { "name": "MFTI", "position": 21, "length": 4,  "startIndex": 377, "type": "numeric", "description": "Planned finish time (HHMM)" },
+        { "name": "PITI", "position": 22, "length": 12, "startIndex": 562, "type": "numeric", "description": "Run time (minutes)" },
+        { "name": "WHLO", "position": 23, "length": 3,  "startIndex": 635, "type": "text",    "description": "Warehouse" }
       ]
     },
     {
@@ -565,29 +543,20 @@
       "httpMethod": "POST",
       "returnsList": true,
       "fields": [
-        {
-          "name": "CONO",
-          "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "required": true,
-          "description": "Company number"
-        },
-        {
-          "name": "FACI",
-          "position": 2,
-          "length": 3,
-          "type": "text",
-          "required": false,
-          "description": "Facility (blank = all)"
-        }
+        { "name": "CONO", "position": 1, "length": 3, "type": "numeric", "required": true,  "description": "Company number" },
+        { "name": "FACI", "position": 2, "length": 3, "type": "text",    "required": false, "description": "Facility (blank = all)" }
       ],
       "responseFields": [
-        { "name": "CONO", "position": 1, "length": 3,  "startIndex": 16, "type": "numeric", "description": "Company number" },
-        { "name": "FACI", "position": 2, "length": 3,  "startIndex": 19, "type": "text",    "description": "Facility" },
-        { "name": "PRNO", "position": 3, "length": 15, "startIndex": 22, "type": "text",    "description": "Product number" },
-        { "name": "MFNO", "position": 4, "length": 7,  "startIndex": 37, "type": "numeric", "description": "Manufacturing order number" },
-        { "name": "WHST", "position": 5, "length": 2,  "startIndex": 44, "type": "text",    "description": "MO status" }
+        { "name": "CONO", "position": 1,  "length": 3,  "startIndex": 16, "type": "numeric", "description": "Company number" },
+        { "name": "FACI", "position": 2,  "length": 3,  "startIndex": 19, "type": "text",    "description": "Facility" },
+        { "name": "PRNO", "position": 3,  "length": 15, "startIndex": 22, "type": "text",    "description": "Product number" },
+        { "name": "MFNO", "position": 4,  "length": 7,  "startIndex": 37, "type": "numeric", "description": "Manufacturing order number" },
+        { "name": "RPCD", "position": 5,  "length": 1,  "startIndex": 44, "type": "text",    "description": "Released/planned code" },
+        { "name": "ORQT", "position": 6,  "length": 16, "startIndex": 45, "type": "decimal", "description": "Ordered quantity" },
+        { "name": "FIDT", "position": 7,  "length": 10, "startIndex": 61, "type": "date",    "description": "Finish date" },
+        { "name": "MFTI", "position": 8,  "length": 4,  "startIndex": 71, "type": "numeric", "description": "Finish time (HHMM)" },
+        { "name": "ERRF", "position": 9,  "length": 2,  "startIndex": 75, "type": "numeric", "description": "Error code" },
+        { "name": "EROP", "position": 10, "length": 4,  "startIndex": 77, "type": "numeric", "description": "Error in operation" }
       ]
     }
   ]
