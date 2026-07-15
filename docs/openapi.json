@@ -902,23 +902,29 @@
       }
     },
     "securitySchemes": {
-      "ApiKey": {
+      "Admin": {
         "type": "apiKey",
-        "description": "API key required. Use the X-API-Key header.",
+        "description": "Admin key — send as X-Admin-Key header.",
+        "name": "X-Admin-Key",
+        "in": "header"
+      },
+      "Primary": {
+        "type": "apiKey",
+        "description": "Primary key — send as X-API-Key header.",
         "name": "X-API-Key",
         "in": "header"
       },
-      "AdminKey": {
+      "Wms": {
         "type": "apiKey",
-        "description": "Admin key for rotation endpoints. Use the X-Admin-Key header.",
-        "name": "X-Admin-Key",
+        "description": "Wms key — send as X-API-Key header.",
+        "name": "X-API-Key",
         "in": "header"
       }
     }
   },
   "security": [
     {
-      "ApiKey": [ ]
+      "Primary": [ ]
     }
   ],
   "tags": [

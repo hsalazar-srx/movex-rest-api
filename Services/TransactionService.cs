@@ -146,7 +146,6 @@ namespace Movex.API.Services
                         var allRecords = new List<Dictionary<string, object?>>();
                         string currentRaw = safeRawResponse;
                         int maxIterations = 500;
-                        bool cursorExhausted = false;
 
                         for (int i = 0; i < maxIterations; i++)
                         {
@@ -159,14 +158,12 @@ namespace Movex.API.Services
                             if (trimmed.StartsWith("NOK", StringComparison.OrdinalIgnoreCase) ||
                                 trimmed.StartsWith("OK", StringComparison.OrdinalIgnoreCase))
                             {
-                                cursorExhausted = true;
                                 break;
                             }
 
                             string dataPayload = currentRaw.Length > 15 ? currentRaw.Substring(15) : string.Empty;
                             if (string.IsNullOrWhiteSpace(dataPayload))
                             {
-                                cursorExhausted = true;
                                 break;
                             }
 
@@ -177,7 +174,6 @@ namespace Movex.API.Services
                             string nextRaw = await pooled.Connection.SendReceiveNextAsync(transactionString) ?? string.Empty;
                             if (string.IsNullOrEmpty(nextRaw))
                             {
-                                cursorExhausted = true;
                                 break;
                             }
                             currentRaw = nextRaw;
