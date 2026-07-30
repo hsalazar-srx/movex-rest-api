@@ -24,6 +24,12 @@ public class Db2Settings
     public string SchemaCmp300 { get; set; } = "MVXC300";
 
     /// <summary>
+    /// Schema for Stargile custom tables (ZECNCIRF, ZECNMPMS). Default: MOVEX.
+    /// These tables exist in the MOVEX library on IBM i, independent of company number.
+    /// </summary>
+    public string SchemaStargile { get; set; } = "MOVEX";
+
+    /// <summary>
     /// SQL command timeout in seconds.
     /// </summary>
     public int CommandTimeoutSeconds { get; set; } = 30;

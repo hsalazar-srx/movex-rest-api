@@ -5,13 +5,20 @@
 // GET /api/parts/search-alias — reverse alias lookup (POPN → ITNO), queries MITPOP
 // GET /api/parts/next-sequence — next available sequence for a part number prefix, queries MITMAS
 // GET /api/customers/list      — active customer list (ECN customer dropdown), queries OCUSMA
+// GET /api/bom/{itno}          — single-level BOM (B-1), queries MPDHED+MPDMAT+MITMAS
+// GET /api/bom/{itno}/indented — multi-level BOM explosion (B-2), recursive CTE over MPDMAT
+// GET /api/bom/where-used/{mtno} — where-used (B-3), reverse MPDMAT lookup
+// GET /api/bom/{prno}/circuit-refs — circuit references (C-1), queries ZECNCIRF (Stargile)
+// GET /api/mpm/export          — paged ZECNMPMS export (M-1), Stargile manufacturer part master
 //
 // Renamed 2026-06-16 from table-named routes (mitpop/search, mitmas/next-sequence) to
 // resource-oriented names, consistent with the new customers/list endpoint.
 //
-// All three endpoints are consumed by Oskar. See Oskar src/adapters/erp/movex.py
-// methods lookup_by_alias(), get_next_itno_sequence(), and list_customers() for the
-// caller contract.
+// BOM endpoints use app-side effectivity filtering — never filter by FDAT/TDAT in the DB2 query
+// because FDAT is a cursor-seek position in M3's MPDMAT index, not a filter field (source-verified
+// 2026-05-08, PDS002MI-routing-analysis.md, applies to both LstComponent and LstOperation).
+//
+// All endpoints are consumed by Oskar. See Oskar src/adapters/erp/movex.py for caller contracts.
 using System.Data.Odbc;
 using Microsoft.AspNetCore.Mvc;
 using Movex.API.Services;
@@ -222,6 +229,259 @@ public class Db2QueryController : ControllerBase
             });
         }
     }
+
+    // ── BOM helpers ───────────────────────────────────────────────────────────
+
+    private static IActionResult Db2Error(ILogger logger, OdbcException ex, string context)
+    {
+        logger.LogError(ex, "DB2 error in {Context}", context);
+        return new ObjectResult(new { success = false, error = "DB2 query failed.", detail = ex.Message })
+        {
+            StatusCode = StatusCodes.Status502BadGateway
+        };
+    }
+
+    private IActionResult NotConfigured(ILogger logger, InvalidOperationException ex)
+    {
+        logger.LogError(ex, "Db2:ConnectionString is not configured");
+        return StatusCode(StatusCodes.Status502BadGateway, new
+        {
+            success = false,
+            error = "DB2 connection string is not configured. Set Db2:ConnectionString in user-secrets (dev) or the IIS env var Db2__ConnectionString (UAT/prod).",
+            detail = ex.Message,
+        });
+    }
+
+    // ── B-1: Single-level BOM ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Single-level BOM for an item: MPDHED header + MPDMAT component lines joined MITMAS.
+    /// App-side effectivity filter applied. Returns 404 if no MPDHED record exists.
+    /// </summary>
+    [HttpGet("api/bom/{itno}")]
+    [ProducesResponseType(typeof(BomSingleLevelResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> GetSingleLevelBom(
+        string itno,
+        [FromQuery] string? cono,
+        [FromQuery] string? faci,
+        [FromQuery] string? strt,
+        [FromQuery] int? effectiveOn,
+        [FromQuery] bool includeExpired = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(faci))
+            return BadRequest(new { success = false, error = "faci is required" });
+
+        var conoResolved = string.IsNullOrWhiteSpace(cono) ? _defaultCono : cono.Trim();
+        var strtResolved = string.IsNullOrWhiteSpace(strt) ? "001" : strt.Trim();
+
+        try
+        {
+            var (head, lines) = await _db2.GetSingleLevelBomAsync(
+                conoResolved, faci.Trim(), itno.Trim(), strtResolved, effectiveOn, includeExpired, cancellationToken);
+
+            if (head is null)
+                return NotFound(new { success = false, error = $"No BOM head found for item '{itno}' in facility '{faci}' structure type '{strtResolved}'" });
+
+            return Ok(new BomSingleLevelResponse
+            {
+                Success = true,
+                Cono    = conoResolved,
+                Data    = new BomSingleLevelData
+                {
+                    Head    = new BomHeadDto(head.PRNO, head.STRT, head.FACI, head.ITDS),
+                    Records = lines.Select(l => new BomLineDto(l.MSEQ, l.MTNO, l.ITDS, l.OPNO, l.CNQT, l.PEUN, l.FDAT, l.TDAT, l.ITTY, l.STAT, l.WHLO)).ToList(),
+                    Count   = lines.Count,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+            { return NotConfigured(_logger, ex); }
+        catch (OdbcException ex)
+            { return Db2Error(_logger, ex, $"BOM single-level itno={itno}"); }
+    }
+
+    // ── B-2: Multi-level (indented) BOM explosion ─────────────────────────────
+
+    /// <summary>
+    /// Multi-level BOM explosion via recursive CTE. PDZ100MI is broken in M3; do not use it.
+    /// Flat depth-first output; Oskar assembles the tree client-side.
+    /// Performance gate: must return &lt;2s against the largest UAT BOM before Slice B.
+    /// </summary>
+    [HttpGet("api/bom/{itno}/indented")]
+    [ProducesResponseType(typeof(BomIndentedResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> GetIndentedBom(
+        string itno,
+        [FromQuery] string? cono,
+        [FromQuery] string? faci,
+        [FromQuery] string? strt,
+        [FromQuery] int levl = 12,
+        [FromQuery] int? effectiveOn = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(faci))
+            return BadRequest(new { success = false, error = "faci is required" });
+
+        var conoResolved = string.IsNullOrWhiteSpace(cono) ? _defaultCono : cono.Trim();
+        var strtResolved = string.IsNullOrWhiteSpace(strt) ? "001" : strt.Trim();
+        var eon = effectiveOn ?? int.Parse(DateTime.Today.ToString("yyyyMMdd"));
+
+        try
+        {
+            var records = await _db2.GetIndentedBomAsync(
+                conoResolved, faci.Trim(), itno.Trim(), strtResolved, levl, eon, cancellationToken);
+
+            return Ok(new BomIndentedResponse
+            {
+                Success = true,
+                Cono    = conoResolved,
+                Data    = new BomIndentedData
+                {
+                    Records = records.Select(r => new BomIndentedDto(
+                        r.LEVL, r.PRNO, r.MSEQ, r.MTNO, r.ITDS, r.OPNO, r.CNQT, r.PEUN,
+                        r.FDAT, r.TDAT, r.STRT, r.WHLO, r.ITTY)).ToList(),
+                    Count   = records.Count,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+            { return NotConfigured(_logger, ex); }
+        catch (OdbcException ex)
+            { return Db2Error(_logger, ex, $"BOM indented itno={itno}"); }
+    }
+
+    // ── B-3: Where-used ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Where-used: reverse MPDMAT lookup — all parent assemblies that contain this component.
+    /// </summary>
+    [HttpGet("api/bom/where-used/{mtno}")]
+    [ProducesResponseType(typeof(WhereUsedResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> GetWhereUsed(
+        string mtno,
+        [FromQuery] string? cono,
+        [FromQuery] string? faci,
+        [FromQuery] int? effectiveOn,
+        CancellationToken cancellationToken = default)
+    {
+        var conoResolved = string.IsNullOrWhiteSpace(cono) ? _defaultCono : cono.Trim();
+
+        try
+        {
+            var records = await _db2.GetWhereUsedAsync(conoResolved, faci, mtno.Trim(), effectiveOn, cancellationToken);
+
+            return Ok(new WhereUsedResponse
+            {
+                Success = true,
+                Cono    = conoResolved,
+                Data    = new WhereUsedData
+                {
+                    Records = records.Select(r => new WhereUsedDto(
+                        r.PRNO, r.STRT, r.FACI, r.MSEQ, r.MTNO, r.OPNO, r.CNQT, r.PEUN, r.FDAT, r.TDAT)).ToList(),
+                    Count   = records.Count,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+            { return NotConfigured(_logger, ex); }
+        catch (OdbcException ex)
+            { return Db2Error(_logger, ex, $"Where-used mtno={mtno}"); }
+    }
+
+    // ── C-1: Circuit references ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Circuit references from Stargile ZECNCIRF (migration/backfill only — retired after cutover).
+    /// CIRF is a comma-delimited list with range notation (R1-R5 expanded to R1..R5).
+    /// </summary>
+    [HttpGet("api/bom/{prno}/circuit-refs")]
+    [ProducesResponseType(typeof(CircuitRefResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> GetCircuitRefs(
+        string prno,
+        [FromQuery] string? cono,
+        [FromQuery] string? faci,
+        [FromQuery] string? strt,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(faci))
+            return BadRequest(new { success = false, error = "faci is required" });
+
+        var conoResolved = string.IsNullOrWhiteSpace(cono) ? _defaultCono : cono.Trim();
+        var strtResolved = string.IsNullOrWhiteSpace(strt) ? "001" : strt.Trim();
+
+        try
+        {
+            var records = await _db2.GetCircuitRefsAsync(conoResolved, faci.Trim(), prno.Trim(), strtResolved, cancellationToken);
+
+            return Ok(new CircuitRefResponse
+            {
+                Success = true,
+                Cono    = conoResolved,
+                Data    = new CircuitRefData
+                {
+                    Records = records.Select(r => new CircuitRefDto(r.FACI, r.PRNO, r.STRT, r.MSEQ, r.FDAT, r.CIRF.ToList())).ToList(),
+                    Count   = records.Count,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+            { return NotConfigured(_logger, ex); }
+        catch (OdbcException ex)
+            { return Db2Error(_logger, ex, $"Circuit refs prno={prno}"); }
+    }
+
+    // ── M-1: ZECNMPMS export ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Paged export of Stargile manufacturer part master (ZECNMPMS, migration only).
+    /// Raw/untransformed — normalisation is the migration script's job.
+    /// </summary>
+    [HttpGet("api/mpm/export")]
+    [ProducesResponseType(typeof(ZecnmpmsExportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> ExportZecnmpms(
+        [FromQuery] string? cono,
+        [FromQuery] int offset = 0,
+        [FromQuery] int limit  = 1000,
+        CancellationToken cancellationToken = default)
+    {
+        var conoResolved = string.IsNullOrWhiteSpace(cono) ? _defaultCono : cono.Trim();
+
+        if (limit < 1 || limit > 5000)
+            return BadRequest(new { success = false, error = "limit must be between 1 and 5000" });
+
+        try
+        {
+            var (records, total) = await _db2.ExportZecnmpmsAsync(conoResolved, offset, limit, cancellationToken);
+
+            return Ok(new ZecnmpmsExportResponse
+            {
+                Success = true,
+                Cono    = conoResolved,
+                Data    = new ZecnmpmsExportData
+                {
+                    Records = records.Select(r => new ZecnmpmsDto(
+                        r.ITNO, r.SUNO, r.MPN, r.MPTX30, r.MPZDEFFL, r.MPFDAT, r.MPTDAT,
+                        r.MPPRIC, r.MPCURR, r.MPMOQ, r.MPSPQ, r.MPDIST, r.MPDISTNM, r.MPLMDT)).ToList(),
+                    Offset  = offset,
+                    Limit   = limit,
+                    Total   = total,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+            { return NotConfigured(_logger, ex); }
+        catch (OdbcException ex)
+            { return Db2Error(_logger, ex, $"ZECNMPMS export cono={conoResolved}"); }
+    }
 }
 
 // ── Response models ───────────────────────────────────────────────────────────
@@ -279,4 +539,140 @@ public sealed class CustomerRecordDto
 {
     public string  CUNO { get; init; } = string.Empty;
     public string? NAME { get; init; }
+}
+
+// ── BOM DTOs ─────────────────────────────────────────────────────────────────
+
+public sealed record BomHeadDto(string PRNO, string STRT, string FACI, string? ITDS);
+
+public sealed record BomLineDto(
+    int      MSEQ,
+    string   MTNO,
+    string?  ITDS,
+    int      OPNO,
+    decimal  CNQT,
+    string?  PEUN,
+    long     FDAT,
+    long     TDAT,
+    string?  ITTY,
+    string?  STAT,
+    string?  WHLO);
+
+public sealed class BomSingleLevelResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public BomSingleLevelData Data { get; init; } = new();
+}
+
+public sealed class BomSingleLevelData
+{
+    public BomHeadDto    Head    { get; init; } = new("", "", "", null);
+    public List<BomLineDto> Records { get; init; } = [];
+    public int           Count   { get; init; }
+}
+
+public sealed record BomIndentedDto(
+    int      LEVL,
+    string   PRNO,
+    int      MSEQ,
+    string   MTNO,
+    string?  ITDS,
+    int      OPNO,
+    decimal  CNQT,
+    string?  PEUN,
+    long     FDAT,
+    long     TDAT,
+    string?  STRT,
+    string?  WHLO,
+    string?  ITTY);
+
+public sealed class BomIndentedResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public BomIndentedData Data { get; init; } = new();
+}
+
+public sealed class BomIndentedData
+{
+    public List<BomIndentedDto> Records { get; init; } = [];
+    public int Count { get; init; }
+}
+
+public sealed record WhereUsedDto(
+    string   PRNO,
+    string?  STRT,
+    string?  FACI,
+    int      MSEQ,
+    string   MTNO,
+    int      OPNO,
+    decimal  CNQT,
+    string?  PEUN,
+    long     FDAT,
+    long     TDAT);
+
+public sealed class WhereUsedResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public WhereUsedData Data { get; init; } = new();
+}
+
+public sealed class WhereUsedData
+{
+    public List<WhereUsedDto> Records { get; init; } = [];
+    public int Count { get; init; }
+}
+
+public sealed record CircuitRefDto(
+    string          FACI,
+    string          PRNO,
+    string          STRT,
+    int             MSEQ,
+    long            FDAT,
+    List<string>    CIRF);
+
+public sealed class CircuitRefResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public CircuitRefData Data { get; init; } = new();
+}
+
+public sealed class CircuitRefData
+{
+    public List<CircuitRefDto> Records { get; init; } = [];
+    public int Count { get; init; }
+}
+
+public sealed record ZecnmpmsDto(
+    string?  ITNO,
+    string?  SUNO,
+    string?  MPN,
+    string?  MPTX30,
+    int?     MPZDEFFL,
+    long?    MPFDAT,
+    long?    MPTDAT,
+    decimal? MPPRIC,
+    string?  MPCURR,
+    decimal? MPMOQ,
+    decimal? MPSPQ,
+    string?  MPDIST,
+    string?  MPDISTNM,
+    long?    MPLMDT);
+
+public sealed class ZecnmpmsExportResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public ZecnmpmsExportData Data { get; init; } = new();
+}
+
+public sealed class ZecnmpmsExportData
+{
+    public List<ZecnmpmsDto> Records { get; init; } = [];
+    public int Offset { get; init; }
+    public int Limit  { get; init; }
+    public int Total  { get; init; }
 }
