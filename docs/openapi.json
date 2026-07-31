@@ -1694,13 +1694,13 @@
             "nullable": true
           },
           "mpzdeffl": {
-            "type": "integer",
-            "format": "int32",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "mpzeefdt": {
-            "type": "integer",
-            "format": "int64",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "mpzecnid": {
@@ -1708,13 +1708,13 @@
             "nullable": true
           },
           "mpfdat": {
-            "type": "integer",
-            "format": "int64",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "mptdat": {
-            "type": "integer",
-            "format": "int64",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "mpmprc": {
@@ -1737,18 +1737,18 @@
             "nullable": true
           },
           "mpzcawid": {
-            "type": "integer",
-            "format": "int32",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "mpzrewid": {
-            "type": "integer",
-            "format": "int32",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "mpzmncnr": {
-            "type": "integer",
-            "format": "int32",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "mpfaci": {
@@ -1756,13 +1756,13 @@
             "nullable": true
           },
           "mplmdt": {
-            "type": "integer",
-            "format": "int64",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "mplmtm": {
-            "type": "integer",
-            "format": "int32",
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },
