@@ -1129,16 +1129,16 @@
         "type": "object",
         "properties": {
           "levl": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "prno": {
             "type": "string",
             "nullable": true
           },
           "mseq": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "mtno": {
             "type": "string",
@@ -1149,8 +1149,8 @@
             "nullable": true
           },
           "opno": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "cnqt": {
             "type": "number",
@@ -1161,12 +1161,12 @@
             "nullable": true
           },
           "fdat": {
-            "type": "integer",
-            "format": "int64"
+            "type": "number",
+            "format": "double"
           },
           "tdat": {
-            "type": "integer",
-            "format": "int64"
+            "type": "number",
+            "format": "double"
           },
           "strt": {
             "type": "string",
@@ -1203,8 +1203,8 @@
         "type": "object",
         "properties": {
           "mseq": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "mtno": {
             "type": "string",
@@ -1215,8 +1215,8 @@
             "nullable": true
           },
           "opno": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "cnqt": {
             "type": "number",
@@ -1227,12 +1227,12 @@
             "nullable": true
           },
           "fdat": {
-            "type": "integer",
-            "format": "int64"
+            "type": "number",
+            "format": "double"
           },
           "tdat": {
-            "type": "integer",
-            "format": "int64"
+            "type": "number",
+            "format": "double"
           },
           "itty": {
             "type": "string",
@@ -1334,12 +1334,12 @@
             "nullable": true
           },
           "mseq": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "fdat": {
-            "type": "integer",
-            "format": "int64"
+            "type": "number",
+            "format": "double"
           },
           "cirf": {
             "type": "array",
@@ -1628,16 +1628,16 @@
             "nullable": true
           },
           "mseq": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "mtno": {
             "type": "string",
             "nullable": true
           },
           "opno": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "cnqt": {
             "type": "number",
@@ -1648,12 +1648,12 @@
             "nullable": true
           },
           "fdat": {
-            "type": "integer",
-            "format": "int64"
+            "type": "number",
+            "format": "double"
           },
           "tdat": {
-            "type": "integer",
-            "format": "int64"
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false

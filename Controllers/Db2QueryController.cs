@@ -547,14 +547,14 @@ public sealed class CustomerRecordDto
 public sealed record BomHeadDto(string PRNO, string STRT, string FACI, string? ITDS);
 
 public sealed record BomLineDto(
-    int      MSEQ,
+    decimal  MSEQ,
     string   MTNO,
     string?  ITDS,
-    int      OPNO,
+    decimal  OPNO,
     decimal  CNQT,
     string?  PEUN,
-    long     FDAT,
-    long     TDAT,
+    decimal  FDAT,
+    decimal  TDAT,
     string?  ITTY,
     string?  STAT,
     string?  WHLO);
@@ -574,16 +574,16 @@ public sealed class BomSingleLevelData
 }
 
 public sealed record BomIndentedDto(
-    int      LEVL,
+    decimal  LEVL,
     string   PRNO,
-    int      MSEQ,
+    decimal  MSEQ,
     string   MTNO,
     string?  ITDS,
-    int      OPNO,
+    decimal  OPNO,
     decimal  CNQT,
     string?  PEUN,
-    long     FDAT,
-    long     TDAT,
+    decimal  FDAT,
+    decimal  TDAT,
     string?  STRT,
     string?  WHLO,
     string?  ITTY);
@@ -605,13 +605,13 @@ public sealed record WhereUsedDto(
     string   PRNO,
     string?  STRT,
     string?  FACI,
-    int      MSEQ,
+    decimal  MSEQ,
     string   MTNO,
-    int      OPNO,
+    decimal  OPNO,
     decimal  CNQT,
     string?  PEUN,
-    long     FDAT,
-    long     TDAT);
+    decimal  FDAT,
+    decimal  TDAT);
 
 public sealed class WhereUsedResponse
 {
@@ -630,8 +630,8 @@ public sealed record CircuitRefDto(
     string          FACI,
     string          PRNO,
     string          STRT,
-    int             MSEQ,
-    long            FDAT,
+    decimal         MSEQ,
+    decimal         FDAT,
     List<string>    CIRF);
 
 public sealed class CircuitRefResponse

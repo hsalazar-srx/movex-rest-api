@@ -481,7 +481,7 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
         if (effectiveOn.HasValue)
         {
-            var eon = effectiveOn.Value;
+            decimal eon = effectiveOn.Value;
             return lines.Where(l => l.FDAT <= eon && (l.TDAT == 0 || l.TDAT >= eon)).ToList();
         }
 
@@ -559,65 +559,74 @@ public sealed record BomHeadRecord(
     string FACI,
     string? ITDS);
 
-/// <summary>MPDMAT component line with MITMAS item description/type/status.</summary>
+/// <summary>
+/// MPDMAT component line with MITMAS item description/type/status.
+/// All numeric fields are decimal — DB2 for i returns all numeric types as decimal over ODBC.
+/// </summary>
 public sealed record BomLineRecord(
-    int    MSEQ,
-    string MTNO,
-    string? ITDS,
-    int    OPNO,
-    decimal CNQT,
-    string? PEUN,
-    long   FDAT,
-    long   TDAT,
-    string? ITTY,
-    string? STAT,
-    string? WHLO);
+    decimal  MSEQ,
+    string   MTNO,
+    string?  ITDS,
+    decimal  OPNO,
+    decimal  CNQT,
+    string?  PEUN,
+    decimal  FDAT,
+    decimal  TDAT,
+    string?  ITTY,
+    string?  STAT,
+    string?  WHLO);
 
-/// <summary>Flat row from the recursive BOM explosion CTE (B-2).</summary>
+/// <summary>
+/// Flat row from the recursive BOM explosion CTE (B-2).
+/// All numeric fields are decimal — DB2 for i returns all numeric types as decimal over ODBC.
+/// </summary>
 public sealed record BomIndentedRecord(
-    int    LEVL,
-    string PRNO,
-    int    MSEQ,
-    string MTNO,
-    string? ITDS,
-    int    OPNO,
-    decimal CNQT,
-    string? PEUN,
-    long   FDAT,
-    long   TDAT,
-    string? STRT,
-    string? WHLO,
-    string? ITTY);
+    decimal  LEVL,
+    string   PRNO,
+    decimal  MSEQ,
+    string   MTNO,
+    string?  ITDS,
+    decimal  OPNO,
+    decimal  CNQT,
+    string?  PEUN,
+    decimal  FDAT,
+    decimal  TDAT,
+    string?  STRT,
+    string?  WHLO,
+    string?  ITTY);
 
-/// <summary>MPDMAT where-used row (reverse lookup on PMMTNO).</summary>
+/// <summary>
+/// MPDMAT where-used row (reverse lookup on PMMTNO).
+/// All numeric fields are decimal — DB2 for i returns all numeric types as decimal over ODBC.
+/// </summary>
 public sealed record WhereUsedRecord(
-    string PRNO,
-    string? STRT,
-    string? FACI,
-    int    MSEQ,
-    string MTNO,
-    int    OPNO,
-    decimal CNQT,
-    string? PEUN,
-    long   FDAT,
-    long   TDAT);
+    string   PRNO,
+    string?  STRT,
+    string?  FACI,
+    decimal  MSEQ,
+    string   MTNO,
+    decimal  OPNO,
+    decimal  CNQT,
+    string?  PEUN,
+    decimal  FDAT,
+    decimal  TDAT);
 
 /// <summary>Internal Dapper intermediate for ZECNCIRF rows before ref expansion.</summary>
 internal sealed record CircuitRefRaw(
-    string FACI,
-    string PRNO,
-    string STRT,
-    int    MSEQ,
-    long   FDAT,
-    string? CIRF_RAW);
+    string   FACI,
+    string   PRNO,
+    string   STRT,
+    decimal  MSEQ,
+    decimal  FDAT,
+    string?  CIRF_RAW);
 
 /// <summary>Circuit reference row with expanded CIRF list (C-1).</summary>
 public sealed record CircuitRefRecord(
-    string FACI,
-    string PRNO,
-    string STRT,
-    int    MSEQ,
-    long   FDAT,
+    string   FACI,
+    string   PRNO,
+    string   STRT,
+    decimal  MSEQ,
+    decimal  FDAT,
     IReadOnlyList<string> CIRF);
 
 /// <summary>
