@@ -469,8 +469,9 @@ public class Db2QueryController : ControllerBase
                 Data    = new ZecnmpmsExportData
                 {
                     Records = records.Select(r => new ZecnmpmsDto(
-                        r.ITNO, r.SUNO, r.MPN, r.MPTX30, r.MPZDEFFL, r.MPFDAT, r.MPTDAT,
-                        r.MPPRIC, r.MPCURR, r.MPMOQ, r.MPSPQ, r.MPDIST, r.MPDISTNM, r.MPLMDT)).ToList(),
+                        r.ITNO, r.SUNO, r.MPZMANPN, r.MPTX30, r.MPZDEFFL, r.MPZEEFDT, r.MPZECNID,
+                        r.MPFDAT, r.MPTDAT, r.MPMPRC, r.MPCUCD, r.MPZMPMOQ, r.MPZMPSPQ,
+                        r.MPZCAWID, r.MPZREWID, r.MPZMNCNR, r.MPFACI, r.MPLMDT, r.MPLMTM)).ToList(),
                     Offset  = offset,
                     Limit   = limit,
                     Total   = total,
@@ -649,18 +650,23 @@ public sealed class CircuitRefData
 public sealed record ZecnmpmsDto(
     string?  ITNO,
     string?  SUNO,
-    string?  MPN,
+    string?  MPZMANPN,
     string?  MPTX30,
     int?     MPZDEFFL,
+    long?    MPZEEFDT,
+    string?  MPZECNID,
     long?    MPFDAT,
     long?    MPTDAT,
-    decimal? MPPRIC,
-    string?  MPCURR,
-    decimal? MPMOQ,
-    decimal? MPSPQ,
-    string?  MPDIST,
-    string?  MPDISTNM,
-    long?    MPLMDT);
+    decimal? MPMPRC,
+    string?  MPCUCD,
+    decimal? MPZMPMOQ,
+    decimal? MPZMPSPQ,
+    int?     MPZCAWID,
+    int?     MPZREWID,
+    int?     MPZMNCNR,
+    string?  MPFACI,
+    long?    MPLMDT,
+    int?     MPLMTM);
 
 public sealed class ZecnmpmsExportResponse
 {

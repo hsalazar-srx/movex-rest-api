@@ -1685,7 +1685,7 @@
             "type": "string",
             "nullable": true
           },
-          "mpn": {
+          "mpzmanpn": {
             "type": "string",
             "nullable": true
           },
@@ -1698,6 +1698,15 @@
             "format": "int32",
             "nullable": true
           },
+          "mpzeefdt": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "mpzecnid": {
+            "type": "string",
+            "nullable": true
+          },
           "mpfdat": {
             "type": "integer",
             "format": "int64",
@@ -1708,36 +1717,52 @@
             "format": "int64",
             "nullable": true
           },
-          "mppric": {
+          "mpmprc": {
             "type": "number",
             "format": "double",
             "nullable": true
           },
-          "mpcurr": {
+          "mpcucd": {
             "type": "string",
             "nullable": true
           },
-          "mpmoq": {
+          "mpzmpmoq": {
             "type": "number",
             "format": "double",
             "nullable": true
           },
-          "mpspq": {
+          "mpzmpspq": {
             "type": "number",
             "format": "double",
             "nullable": true
           },
-          "mpdist": {
-            "type": "string",
+          "mpzcawid": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
-          "mpdistnm": {
+          "mpzrewid": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "mpzmncnr": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "mpfaci": {
             "type": "string",
             "nullable": true
           },
           "mplmdt": {
             "type": "integer",
             "format": "int64",
+            "nullable": true
+          },
+          "mplmtm": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },

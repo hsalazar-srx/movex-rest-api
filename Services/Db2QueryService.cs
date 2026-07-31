@@ -429,10 +429,13 @@ ORDER BY CRMSEQ, CRFDAT";
     {
         var countSql = $"SELECT COUNT(*) FROM {_settings.SchemaStargile}.ZECNMPMS WHERE MPCONO = ?";
 
-        var dataSql = $@"SELECT TRIM(MPITNO) AS ITNO, TRIM(MPSUNO) AS SUNO, TRIM(MPZMANPN) AS MPN,
-       TRIM(MPTX30) AS MPTX30, MPZDEFFL, MPFDAT, MPTDAT,
-       MPMPRC AS MPPRIC, TRIM(MPCUCD) AS MPCURR, MPZMPMOQ AS MPMOQ, MPZMPSPQ AS MPSPQ,
-       TRIM(MPZDISNO) AS MPDIST, TRIM(MPZDISNM) AS MPDISTNM, MPLMDT
+        // Column names are the real DB2 names (source-verified 2026-07-27 from MPMDetail.cml / MPMBrowse.cml).
+        // MPDIST/MPDISTNM do not exist on this table — they were removed after source verification.
+        // ITNO/SUNO are trimmed aliases for MPITNO/MPSUNO (matching the fixture CSV header).
+        var dataSql = $@"SELECT TRIM(MPITNO) AS ITNO, TRIM(MPSUNO) AS SUNO, TRIM(MPZMANPN) AS MPZMANPN,
+       TRIM(MPTX30) AS MPTX30, MPZDEFFL, MPZEEFDT, TRIM(MPZECNID) AS MPZECNID,
+       MPFDAT, MPTDAT, MPMPRC, TRIM(MPCUCD) AS MPCUCD, MPZMPMOQ, MPZMPSPQ,
+       MPZCAWID, MPZREWID, MPZMNCNR, TRIM(MPFACI) AS MPFACI, MPLMDT, MPLMTM
 FROM {_settings.SchemaStargile}.ZECNMPMS
 WHERE MPCONO = ?
 ORDER BY TRIM(MPITNO), TRIM(MPSUNO), TRIM(MPZMANPN)
@@ -617,19 +620,28 @@ public sealed record CircuitRefRecord(
     long   FDAT,
     IReadOnlyList<string> CIRF);
 
-/// <summary>Raw ZECNMPMS row for manufacturer part master export (M-1).</summary>
+/// <summary>
+/// Raw ZECNMPMS row for manufacturer part master export (M-1).
+/// Column names source-verified 2026-07-27 from MPMDetail.cml / MPMBrowse.cml.
+/// MPDIST/MPDISTNM do not exist on this table — removed after source verification.
+/// </summary>
 public sealed record ZecnmpmsRecord(
-    string  ITNO,
-    string? SUNO,
-    string? MPN,
-    string? MPTX30,
-    int?    MPZDEFFL,
-    long?   MPFDAT,
-    long?   MPTDAT,
-    decimal? MPPRIC,
-    string?  MPCURR,
-    decimal? MPMOQ,
-    decimal? MPSPQ,
-    string?  MPDIST,
-    string?  MPDISTNM,
-    long?    MPLMDT);
+    string   ITNO,
+    string?  SUNO,
+    string?  MPZMANPN,
+    string?  MPTX30,
+    int?     MPZDEFFL,
+    long?    MPZEEFDT,
+    string?  MPZECNID,
+    long?    MPFDAT,
+    long?    MPTDAT,
+    decimal? MPMPRC,
+    string?  MPCUCD,
+    decimal? MPZMPMOQ,
+    decimal? MPZMPSPQ,
+    int?     MPZCAWID,
+    int?     MPZREWID,
+    int?     MPZMNCNR,
+    string?  MPFACI,
+    long?    MPLMDT,
+    int?     MPLMTM);
