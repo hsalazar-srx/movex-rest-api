@@ -272,9 +272,13 @@ ORDER BY PMMSEQ";
         // effectiveOn filters both anchor and recursive step for active lines only.
         // 9 params: cono, faci, itno, strt, effectiveOn (anchor), cono (recursive join),
         //           maxDepth, effectiveOn (recursive), cono (MITMAS join)
+        // CAST all integer-arithmetic columns to DECIMAL(15,0) — DB2 for i returns computed
+        // INTEGER expressions as Int32 over ODBC, not Decimal, which breaks Dapper positional
+        // record binding. Physical column reads (PMMSEQ, PMOPNO, etc.) already come as Decimal,
+        // but LEVL (1, p.LEVL+1) is a literal/arithmetic result and stays Int32 unless cast.
         var sql = $@"WITH BOM_CTE (LEVL, PRNO, STRT, FACI, MSEQ, MTNO, OPNO, CNQT, PEUN, FDAT, TDAT,
               WHLO, ANCESTORS) AS (
-  SELECT 1, TRIM(PMPRNO), TRIM(PMSTRT), TRIM(PMFACI),
+  SELECT CAST(1 AS DECIMAL(15,0)), TRIM(PMPRNO), TRIM(PMSTRT), TRIM(PMFACI),
          PMMSEQ, TRIM(PMMTNO), PMOPNO, PMCNQT, TRIM(PMPEUN), PMFDAT, PMTDAT,
          TRIM(PMWHLO),
          CAST(TRIM(PMPRNO) AS VARCHAR(900))
@@ -284,7 +288,7 @@ ORDER BY PMMSEQ";
 
   UNION ALL
 
-  SELECT p.LEVL + 1, TRIM(c.PMPRNO), TRIM(c.PMSTRT), TRIM(c.PMFACI),
+  SELECT CAST(p.LEVL + 1 AS DECIMAL(15,0)), TRIM(c.PMPRNO), TRIM(c.PMSTRT), TRIM(c.PMFACI),
          c.PMMSEQ, TRIM(c.PMMTNO), c.PMOPNO, c.PMCNQT, TRIM(c.PMPEUN),
          c.PMFDAT, c.PMTDAT,
          TRIM(c.PMWHLO),
@@ -389,9 +393,11 @@ ORDER BY TRIM(PMPRNO), PMMSEQ";
         string strt,
         CancellationToken cancellationToken = default)
     {
+        var stargileSchema = ResolveStargileSchema(cono);
         var sql = $@"SELECT TRIM(CRFACI) AS FACI, TRIM(CRPRNO) AS PRNO, TRIM(CRSTRT) AS STRT,
-       CRMSEQ AS MSEQ, CRFDAT AS FDAT, CAST(CRZCIRRF AS VARCHAR(4096)) AS CIRF_RAW
-FROM {_settings.SchemaStargile}.ZECNCIRF
+       CAST(CRMSEQ AS DECIMAL(15,0)) AS MSEQ, CAST(CRFDAT AS DECIMAL(15,0)) AS FDAT,
+       CAST(CRZCIRRF AS VARCHAR(4096)) AS CIRF_RAW
+FROM {stargileSchema}.ZECNCIRF
 WHERE CRCONO = ? AND TRIM(CRFACI) = ? AND TRIM(CRPRNO) = ? AND TRIM(CRSTRT) = ?
 ORDER BY CRMSEQ, CRFDAT";
 
@@ -427,16 +433,27 @@ ORDER BY CRMSEQ, CRFDAT";
         int limit,
         CancellationToken cancellationToken = default)
     {
-        var countSql = $"SELECT COUNT(*) FROM {_settings.SchemaStargile}.ZECNMPMS WHERE MPCONO = ?";
+        var stargileSchema = ResolveStargileSchema(cono);
+        var countSql = $"SELECT COUNT(*) FROM {stargileSchema}.ZECNMPMS WHERE MPCONO = ?";
 
         // Column names are the real DB2 names (source-verified 2026-07-27 from MPMDetail.cml / MPMBrowse.cml).
         // MPDIST/MPDISTNM do not exist on this table — they were removed after source verification.
         // ITNO/SUNO are trimmed aliases for MPITNO/MPSUNO (matching the fixture CSV header).
         var dataSql = $@"SELECT TRIM(MPITNO) AS ITNO, TRIM(MPSUNO) AS SUNO, TRIM(MPZMANPN) AS MPZMANPN,
-       TRIM(MPTX30) AS MPTX30, MPZDEFFL, MPZEEFDT, TRIM(MPZECNID) AS MPZECNID,
-       MPFDAT, MPTDAT, MPMPRC, TRIM(MPCUCD) AS MPCUCD, MPZMPMOQ, MPZMPSPQ,
-       MPZCAWID, MPZREWID, MPZMNCNR, TRIM(MPFACI) AS MPFACI, MPLMDT, MPLMTM
-FROM {_settings.SchemaStargile}.ZECNMPMS
+       TRIM(MPTX30) AS MPTX30,
+       CAST(MPZDEFFL AS DECIMAL(15,0)) AS MPZDEFFL,
+       CAST(MPZEEFDT AS DECIMAL(15,0)) AS MPZEEFDT,
+       TRIM(MPZECNID) AS MPZECNID,
+       CAST(MPFDAT AS DECIMAL(15,0)) AS MPFDAT,
+       CAST(MPTDAT AS DECIMAL(15,0)) AS MPTDAT,
+       MPMPRC, TRIM(MPCUCD) AS MPCUCD, MPZMPMOQ, MPZMPSPQ,
+       CAST(MPZCAWID AS DECIMAL(15,0)) AS MPZCAWID,
+       CAST(MPZREWID AS DECIMAL(15,0)) AS MPZREWID,
+       CAST(MPZMNCNR AS DECIMAL(15,0)) AS MPZMNCNR,
+       TRIM(MPFACI) AS MPFACI,
+       CAST(MPLMDT AS DECIMAL(15,0)) AS MPLMDT,
+       CAST(MPLMTM AS DECIMAL(15,0)) AS MPLMTM
+FROM {stargileSchema}.ZECNMPMS
 WHERE MPCONO = ?
 ORDER BY TRIM(MPITNO), TRIM(MPSUNO), TRIM(MPZMANPN)
 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -470,7 +487,14 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
     {
         "100" => _settings.SchemaCmp100,
         "300" => _settings.SchemaCmp300,
-        _     => _settings.SchemaCmp300,   // default to dev schema for unknown CONO
+        _     => _settings.SchemaCmp300,
+    };
+
+    private string ResolveStargileSchema(string cono) => cono.Trim() switch
+    {
+        "100" => _settings.SchemaStargile100,
+        "300" => _settings.SchemaStargile300,
+        _     => _settings.SchemaStargile300,
     };
 
     private static List<BomLineRecord> ApplyEffectivityFilter(
@@ -633,24 +657,25 @@ public sealed record CircuitRefRecord(
 /// Raw ZECNMPMS row for manufacturer part master export (M-1).
 /// Column names source-verified 2026-07-27 from MPMDetail.cml / MPMBrowse.cml.
 /// MPDIST/MPDISTNM do not exist on this table — removed after source verification.
+/// All numeric fields are decimal? — DB2 for i returns all numeric types as decimal over ODBC.
 /// </summary>
 public sealed record ZecnmpmsRecord(
     string   ITNO,
     string?  SUNO,
     string?  MPZMANPN,
     string?  MPTX30,
-    int?     MPZDEFFL,
-    long?    MPZEEFDT,
+    decimal? MPZDEFFL,
+    decimal? MPZEEFDT,
     string?  MPZECNID,
-    long?    MPFDAT,
-    long?    MPTDAT,
+    decimal? MPFDAT,
+    decimal? MPTDAT,
     decimal? MPMPRC,
     string?  MPCUCD,
     decimal? MPZMPMOQ,
     decimal? MPZMPSPQ,
-    int?     MPZCAWID,
-    int?     MPZREWID,
-    int?     MPZMNCNR,
+    decimal? MPZCAWID,
+    decimal? MPZREWID,
+    decimal? MPZMNCNR,
     string?  MPFACI,
-    long?    MPLMDT,
-    int?     MPLMTM);
+    decimal? MPLMDT,
+    decimal? MPLMTM);

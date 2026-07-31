@@ -647,26 +647,27 @@ public sealed class CircuitRefData
     public int Count { get; init; }
 }
 
+// All numeric fields are decimal? — DB2 for i returns all numeric types as decimal over ODBC.
 public sealed record ZecnmpmsDto(
     string?  ITNO,
     string?  SUNO,
     string?  MPZMANPN,
     string?  MPTX30,
-    int?     MPZDEFFL,
-    long?    MPZEEFDT,
+    decimal? MPZDEFFL,
+    decimal? MPZEEFDT,
     string?  MPZECNID,
-    long?    MPFDAT,
-    long?    MPTDAT,
+    decimal? MPFDAT,
+    decimal? MPTDAT,
     decimal? MPMPRC,
     string?  MPCUCD,
     decimal? MPZMPMOQ,
     decimal? MPZMPSPQ,
-    int?     MPZCAWID,
-    int?     MPZREWID,
-    int?     MPZMNCNR,
+    decimal? MPZCAWID,
+    decimal? MPZREWID,
+    decimal? MPZMNCNR,
     string?  MPFACI,
-    long?    MPLMDT,
-    int?     MPLMTM);
+    decimal? MPLMDT,
+    decimal? MPLMTM);
 
 public sealed class ZecnmpmsExportResponse
 {
