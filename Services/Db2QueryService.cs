@@ -513,14 +513,15 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         return lines.Where(l => l.TDAT == 0 || l.TDAT == 99999999).ToList();
     }
 
-    // Expands a comma-delimited CLOB string of ref designators; supports range notation (R1-R5).
+    // Expands a comma-or-space-delimited CLOB string of ref designators; supports range notation (R1-R5).
+    // Live data (2026-07-31) shows both formats in use: "R1,R2,R3" and "R1 R2 R3".
     private static List<string> ExpandCircuitRefs(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
             return [];
 
         var result = new List<string>();
-        foreach (var token in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var token in raw.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var dashIdx = token.LastIndexOf('-');
             if (dashIdx > 0)
