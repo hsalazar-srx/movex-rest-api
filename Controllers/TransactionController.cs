@@ -106,15 +106,18 @@ namespace Movex.API.Controllers
             errorMessage = null;
             errorCode = null;
 
+            // Empty list = no records found — this is a valid successful result for list transactions
             if (parsedList.Count == 0)
+                return true;
+
+            // Only check MSID on the first record if it actually contains one.
+            // List data rows don't have MSID — a non-empty list is a success.
+            if (parsedList[0].ContainsKey("MSID"))
             {
-                errorMessage = "M3 returned empty response - transaction may have failed";
-                errorCode = "M3_EMPTY_RESPONSE";
-                _logger.LogWarning("M3 returned empty parsed list response - this may indicate a rejected transaction");
-                return false;
+                return EvaluateParsedResponse(parsedList[0], out errorMessage, out errorCode);
             }
 
-            return EvaluateParsedResponse(parsedList[0], out errorMessage, out errorCode);
+            return true;
         }
 
         private bool EvaluateParsedResponse(Dictionary<string, object?> parsedResponse, out string? errorMessage, out string? errorCode)

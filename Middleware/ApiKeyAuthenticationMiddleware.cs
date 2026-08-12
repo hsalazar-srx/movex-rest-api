@@ -10,6 +10,7 @@ namespace Movex.API.Middleware
     {
         public string? Primary { get; set; }
         public string? Admin { get; set; }
+        public string? Wms { get; set; }
     }
 
     public class ApiKeyAuthenticationMiddleware
@@ -21,6 +22,7 @@ namespace Movex.API.Middleware
 
         private const string ApiKeyHeader = "X-API-Key";
         private const string AdminKeyHeader = "X-Admin-Key";
+        public const string ApiKeyTierItem = "ApiKeyTier";
 
         public ApiKeyAuthenticationMiddleware(
             RequestDelegate next,
@@ -58,11 +60,36 @@ namespace Movex.API.Middleware
                 string.Equals(adminHeaderValue, options.Admin, System.StringComparison.Ordinal))
             {
                 _logger.LogInformation("Admin access granted for {Path}", context.Request.Path);
+                context.Items[ApiKeyTierItem] = "Admin";
                 await _next(context);
                 return;
             }
 
-            // Otherwise require regular API key
+            // Check provided key against Primary and Lite
+            if (!context.Request.Headers.TryGetValue(ApiKeyHeader, out var providedKey))
+            {
+                _logger.LogWarning("API key missing for {Path}", context.Request.Path);
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Unauthorized");
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(options.Admin) &&
+                string.Equals(providedKey, options.Admin, System.StringComparison.Ordinal))
+            {
+                context.Items[ApiKeyTierItem] = "Admin";
+                await _next(context);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(options.Wms) &&
+                string.Equals(providedKey, options.Wms, System.StringComparison.Ordinal))
+            {
+                context.Items[ApiKeyTierItem] = "Wms";
+                await _next(context);
+                return;
+            }
+
             var configuredKey = options.Primary;
             if (string.IsNullOrWhiteSpace(configuredKey))
             {
@@ -72,15 +99,15 @@ namespace Movex.API.Middleware
                 return;
             }
 
-            if (!context.Request.Headers.TryGetValue(ApiKeyHeader, out var providedKey) ||
-                !string.Equals(providedKey, configuredKey, System.StringComparison.Ordinal))
+            if (!string.Equals(providedKey, configuredKey, System.StringComparison.Ordinal))
             {
-                _logger.LogWarning("API key missing or invalid for {Path}", context.Request.Path);
+                _logger.LogWarning("API key invalid for {Path}", context.Request.Path);
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Unauthorized");
                 return;
             }
 
+            context.Items[ApiKeyTierItem] = "Primary";
             await _next(context);
         }
     }

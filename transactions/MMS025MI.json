@@ -1,0 +1,79 @@
+{
+  "program": "MMS025MI",
+  "library": "MVXCOBJ",
+  "description": "Item Alias Management — Register MPN as item alias in MITPOP",
+  "transactions": [
+    {
+      "name": "AddAlias",
+      "description": "Register a Manufacturer Part Number (MPN) as an item alias",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "ALWT",
+          "position": 2,
+          "length": 2,
+          "type": "numeric",
+          "required": true,
+          "description": "Alias Type (qualifier category)"
+        },
+        {
+          "name": "ALWQ",
+          "position": 3,
+          "length": 4,
+          "type": "text",
+          "required": true,
+          "description": "Alias Qualifier"
+        },
+        {
+          "name": "ITNO",
+          "position": 4,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number"
+        },
+        {
+          "name": "POPN",
+          "position": 5,
+          "length": 30,
+          "type": "text",
+          "required": true,
+          "description": "Manufacturer Part Number"
+        },
+        {
+          "name": "E0PA",
+          "position": 6,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Partner alias type (supplier identifier)"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "position": 1,
+          "length": 7,
+          "type": "text",
+          "description": "Message ID (blank = success)"
+        },
+        {
+          "name": "MSDT",
+          "position": 2,
+          "length": 100,
+          "type": "text",
+          "description": "Error detail"
+        }
+      ]
+    }
+  ]
+}

@@ -206,6 +206,13 @@ namespace Movex.API
             return SendReceiveAsync(host, port, username, password, request, apiprogram).GetAwaiter().GetResult();
         }
 
+        public async Task<string> SendReceiveNextAsync(string request)
+        {
+            if (_socket == null || !_socket.Connected || !_loggedIn)
+                throw new InvalidOperationException("Cannot fetch next record: session is not open.");
+            return await ExecuteAsync(request, true) ?? string.Empty;
+        }
+
         public async Task CloseAsync()
         {
             Console.WriteLine("[MvxSock] Closing connection...");

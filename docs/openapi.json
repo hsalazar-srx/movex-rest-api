@@ -199,6 +199,436 @@
         }
       }
     },
+    "/api/bom/{itno}": {
+      "get": {
+        "tags": [
+          "Db2Query"
+        ],
+        "summary": "Single-level BOM for an item: MPDHED header + MPDMAT component lines joined MITMAS.\r\nApp-side effectivity filter applied. Returns 404 if no MPDHED record exists.",
+        "parameters": [
+          {
+            "name": "itno",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cono",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "faci",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "strt",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "effectiveOn",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "includeExpired",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomSingleLevelResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomSingleLevelResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomSingleLevelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway"
+          }
+        }
+      }
+    },
+    "/api/bom/{itno}/indented": {
+      "get": {
+        "tags": [
+          "Db2Query"
+        ],
+        "summary": "Multi-level BOM explosion via recursive CTE. PDZ100MI is broken in M3; do not use it.\r\nFlat depth-first output; Oskar assembles the tree client-side.\r\nPerformance gate: must return <2s against the largest UAT BOM before Slice B.",
+        "parameters": [
+          {
+            "name": "itno",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cono",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "faci",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "strt",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "levl",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 12
+            }
+          },
+          {
+            "name": "effectiveOn",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomIndentedResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomIndentedResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BomIndentedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway"
+          }
+        }
+      }
+    },
+    "/api/bom/where-used/{mtno}": {
+      "get": {
+        "tags": [
+          "Db2Query"
+        ],
+        "summary": "Where-used: reverse MPDMAT lookup — all parent assemblies that contain this component.",
+        "parameters": [
+          {
+            "name": "mtno",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cono",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "faci",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "effectiveOn",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhereUsedResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhereUsedResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhereUsedResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway"
+          }
+        }
+      }
+    },
+    "/api/bom/{prno}/circuit-refs": {
+      "get": {
+        "tags": [
+          "Db2Query"
+        ],
+        "summary": "Circuit references from Stargile ZECNCIRF (migration/backfill only — retired after cutover).\r\nCIRF is a comma-delimited list with range notation (R1-R5 expanded to R1..R5).",
+        "parameters": [
+          {
+            "name": "prno",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cono",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "faci",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "strt",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitRefResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitRefResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitRefResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway"
+          }
+        }
+      }
+    },
+    "/api/mpm/export": {
+      "get": {
+        "tags": [
+          "Db2Query"
+        ],
+        "summary": "Paged export of Stargile manufacturer part master (ZECNMPMS, migration only).\r\nRaw/untransformed — normalisation is the migration script's job.",
+        "parameters": [
+          {
+            "name": "cono",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZecnmpmsExportResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZecnmpmsExportResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZecnmpmsExportResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -570,10 +1000,291 @@
           }
         }
       }
+    },
+    "/wms/{program}/{transaction}": {
+      "post": {
+        "tags": [
+          "WmsTransaction"
+        ],
+        "summary": "Execute a permitted M3 transaction via POST body.",
+        "parameters": [
+          {
+            "name": "program",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transaction",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": { }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "WmsTransaction"
+        ],
+        "summary": "Execute a permitted M3 transaction via GET query parameters.",
+        "parameters": [
+          {
+            "name": "program",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transaction",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "BomHeadDto": {
+        "type": "object",
+        "properties": {
+          "prno": {
+            "type": "string",
+            "nullable": true
+          },
+          "strt": {
+            "type": "string",
+            "nullable": true
+          },
+          "faci": {
+            "type": "string",
+            "nullable": true
+          },
+          "itds": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BomIndentedData": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BomIndentedDto"
+            },
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BomIndentedDto": {
+        "type": "object",
+        "properties": {
+          "levl": {
+            "type": "number",
+            "format": "double"
+          },
+          "prno": {
+            "type": "string",
+            "nullable": true
+          },
+          "mseq": {
+            "type": "number",
+            "format": "double"
+          },
+          "mtno": {
+            "type": "string",
+            "nullable": true
+          },
+          "itds": {
+            "type": "string",
+            "nullable": true
+          },
+          "opno": {
+            "type": "number",
+            "format": "double"
+          },
+          "cnqt": {
+            "type": "number",
+            "format": "double"
+          },
+          "peun": {
+            "type": "string",
+            "nullable": true
+          },
+          "fdat": {
+            "type": "number",
+            "format": "double"
+          },
+          "tdat": {
+            "type": "number",
+            "format": "double"
+          },
+          "strt": {
+            "type": "string",
+            "nullable": true
+          },
+          "whlo": {
+            "type": "string",
+            "nullable": true
+          },
+          "itty": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BomIndentedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/BomIndentedData"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BomLineDto": {
+        "type": "object",
+        "properties": {
+          "mseq": {
+            "type": "number",
+            "format": "double"
+          },
+          "mtno": {
+            "type": "string",
+            "nullable": true
+          },
+          "itds": {
+            "type": "string",
+            "nullable": true
+          },
+          "opno": {
+            "type": "number",
+            "format": "double"
+          },
+          "cnqt": {
+            "type": "number",
+            "format": "double"
+          },
+          "peun": {
+            "type": "string",
+            "nullable": true
+          },
+          "fdat": {
+            "type": "number",
+            "format": "double"
+          },
+          "tdat": {
+            "type": "number",
+            "format": "double"
+          },
+          "itty": {
+            "type": "string",
+            "nullable": true
+          },
+          "stat": {
+            "type": "string",
+            "nullable": true
+          },
+          "whlo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BomSingleLevelData": {
+        "type": "object",
+        "properties": {
+          "head": {
+            "$ref": "#/components/schemas/BomHeadDto"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BomLineDto"
+            },
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BomSingleLevelResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/BomSingleLevelData"
+          }
+        },
+        "additionalProperties": false
+      },
       "BooleanConnectionPoolStatsDateTime<>f__AnonymousType36": {
         "type": "object",
         "properties": {
@@ -586,6 +1297,72 @@
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CircuitRefData": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CircuitRefDto"
+            },
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CircuitRefDto": {
+        "type": "object",
+        "properties": {
+          "faci": {
+            "type": "string",
+            "nullable": true
+          },
+          "prno": {
+            "type": "string",
+            "nullable": true
+          },
+          "strt": {
+            "type": "string",
+            "nullable": true
+          },
+          "mseq": {
+            "type": "number",
+            "format": "double"
+          },
+          "fdat": {
+            "type": "number",
+            "format": "double"
+          },
+          "cirf": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CircuitRefResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/CircuitRefData"
           }
         },
         "additionalProperties": false
@@ -817,26 +1594,252 @@
           }
         },
         "additionalProperties": false
+      },
+      "WhereUsedData": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WhereUsedDto"
+            },
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WhereUsedDto": {
+        "type": "object",
+        "properties": {
+          "prno": {
+            "type": "string",
+            "nullable": true
+          },
+          "strt": {
+            "type": "string",
+            "nullable": true
+          },
+          "faci": {
+            "type": "string",
+            "nullable": true
+          },
+          "mseq": {
+            "type": "number",
+            "format": "double"
+          },
+          "mtno": {
+            "type": "string",
+            "nullable": true
+          },
+          "opno": {
+            "type": "number",
+            "format": "double"
+          },
+          "cnqt": {
+            "type": "number",
+            "format": "double"
+          },
+          "peun": {
+            "type": "string",
+            "nullable": true
+          },
+          "fdat": {
+            "type": "number",
+            "format": "double"
+          },
+          "tdat": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WhereUsedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/WhereUsedData"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ZecnmpmsDto": {
+        "type": "object",
+        "properties": {
+          "itno": {
+            "type": "string",
+            "nullable": true
+          },
+          "suno": {
+            "type": "string",
+            "nullable": true
+          },
+          "mpzmanpn": {
+            "type": "string",
+            "nullable": true
+          },
+          "mptX30": {
+            "type": "string",
+            "nullable": true
+          },
+          "mpzdeffl": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpzeefdt": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpzecnid": {
+            "type": "string",
+            "nullable": true
+          },
+          "mpfdat": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mptdat": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpmprc": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpcucd": {
+            "type": "string",
+            "nullable": true
+          },
+          "mpzmpmoq": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpzmpspq": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpzcawid": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpzrewid": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpzmncnr": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mpfaci": {
+            "type": "string",
+            "nullable": true
+          },
+          "mplmdt": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mplmtm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ZecnmpmsExportData": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ZecnmpmsDto"
+            },
+            "nullable": true
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ZecnmpmsExportResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/ZecnmpmsExportData"
+          }
+        },
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
-      "ApiKey": {
+      "Admin": {
         "type": "apiKey",
-        "description": "API key required. Use the X-API-Key header.",
+        "description": "Admin key — send as X-Admin-Key header.",
+        "name": "X-Admin-Key",
+        "in": "header"
+      },
+      "Primary": {
+        "type": "apiKey",
+        "description": "Primary key — send as X-API-Key header.",
         "name": "X-API-Key",
         "in": "header"
       },
-      "AdminKey": {
+      "Wms": {
         "type": "apiKey",
-        "description": "Admin key for rotation endpoints. Use the X-Admin-Key header.",
-        "name": "X-Admin-Key",
+        "description": "Wms key — send as X-API-Key header.",
+        "name": "X-API-Key",
         "in": "header"
       }
     }
   },
   "security": [
     {
-      "ApiKey": [ ]
+      "Primary": [ ]
+    }
+  ],
+  "tags": [
+    {
+      "name": "WmsTransaction",
+      "description": "WMS API surface — M3 transactions available to the Smart Warehouse system.\r\nPermitted transactions are declared in ApiKeys:WmsAllowedTransactions in config.\r\nPrimary and Admin key holders can also call these routes without restriction."
     }
   ]
 }

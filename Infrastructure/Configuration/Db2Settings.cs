@@ -24,6 +24,17 @@ public class Db2Settings
     public string SchemaCmp300 { get; set; } = "MVXC300";
 
     /// <summary>
+    /// Schema for Stargile custom tables (ZECNCIRF, ZECNMPMS) for company 100 (production).
+    /// Stargile uses COMCDTA{CONO} libraries, mirroring M3's per-company library pattern.
+    /// </summary>
+    public string SchemaStargile100 { get; set; } = "COMCDTA100";
+
+    /// <summary>
+    /// Schema for Stargile custom tables (ZECNCIRF, ZECNMPMS) for company 300 (dev/UAT).
+    /// </summary>
+    public string SchemaStargile300 { get; set; } = "COMCDTA300";
+
+    /// <summary>
     /// SQL command timeout in seconds.
     /// </summary>
     public int CommandTimeoutSeconds { get; set; } = 30;

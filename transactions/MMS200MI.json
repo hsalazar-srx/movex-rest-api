@@ -66,22 +66,6 @@
           "type": "text",
           "startIndex": 189,
           "description": "Unit of Measure (absolute position)"
-        },
-        {
-          "name": "PRGP",
-          "position": 6,
-          "length": 12,
-          "type": "text",
-          "startIndex": 215,
-          "description": "Procurement Group"
-        },
-        {
-          "name": "ITCL",
-          "position": 7,
-          "length": 15,
-          "type": "text",
-          "startIndex": 230,
-          "description": "Product Group (Item Classification)"
         }
       ]
     },
@@ -373,6 +357,444 @@
         }
       ],
       "responseFields": []
+    },
+    {
+      "name": "AddItmViaItmTyp",
+      "description": "Add Item via Item Type — creates MITMAS record using an item type template (preferred for new items; pre-populates product group, procurement group, UoM and other defaults from the item type definition)",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "ITTY",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Item Type — drives default population of classification fields"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number (MITMAS.MMITNO)"
+        },
+        {
+          "name": "ITDS",
+          "position": 4,
+          "length": 30,
+          "type": "text",
+          "required": true,
+          "description": "Item Name (MITMAS.MMITDS)"
+        },
+        {
+          "name": "FUDS",
+          "position": 5,
+          "length": 60,
+          "type": "text",
+          "required": false,
+          "description": "Description 2 (MITMAS.MMFUDS)"
+        },
+        {
+          "name": "UNMS",
+          "position": 6,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Basic Unit of Measure (MITMAS.MMUNMS) — defaults from item type if omitted"
+        },
+        {
+          "name": "ITCL",
+          "position": 7,
+          "length": 5,
+          "type": "text",
+          "required": false,
+          "description": "Product Group (MITMAS.MMITCL)"
+        },
+        {
+          "name": "PRGP",
+          "position": 8,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Procurement Group (MITMAS.MMPRGP)"
+        },
+        {
+          "name": "STAT",
+          "position": 9,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Status — 20=active; defaults to 20 if omitted"
+        },
+        {
+          "name": "RESP",
+          "position": 10,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Responsible Engineer (MITMAS.MMRESP)"
+        },
+        {
+          "name": "BUYE",
+          "position": 11,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Buyer (MITMAS.MMBUYE)"
+        },
+        {
+          "name": "SUNO",
+          "position": 12,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Primary Supplier Number (MITMAS.MMSUNO)"
+        },
+        {
+          "name": "PUPR",
+          "position": 13,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Purchase Price (MITMAS.MMPUPR)"
+        },
+        {
+          "name": "LEA1",
+          "position": 14,
+          "length": 3,
+          "type": "numeric",
+          "required": false,
+          "description": "Supply Lead Time days (MITMAS.MMLEA1)"
+        },
+        {
+          "name": "ECVE",
+          "position": 15,
+          "length": 4,
+          "type": "text",
+          "required": false,
+          "description": "Revision Number (MITMAS.MMECVE)"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "type": "text",
+          "length": 7,
+          "description": "Message ID — blank = success; non-blank = error code"
+        },
+        {
+          "name": "MSDT",
+          "type": "text",
+          "length": 100,
+          "description": "Error detail"
+        },
+        {
+          "name": "ITNO",
+          "type": "text",
+          "length": 15,
+          "description": "Created item number (echo)"
+        }
+      ]
+    },
+    {
+      "name": "AddItmBasic",
+      "description": "Add Item Basic — creates MITMAS record without an item type template. Use AddItmViaItmTyp when an item type is available; use this only when no applicable item type exists.",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "ITNO",
+          "position": 2,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number"
+        },
+        {
+          "name": "ITDS",
+          "position": 3,
+          "length": 30,
+          "type": "text",
+          "required": true,
+          "description": "Item Name"
+        },
+        {
+          "name": "FUDS",
+          "position": 4,
+          "length": 60,
+          "type": "text",
+          "required": false,
+          "description": "Description 2"
+        },
+        {
+          "name": "ITTY",
+          "position": 5,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Item Type"
+        },
+        {
+          "name": "UNMS",
+          "position": 6,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Basic Unit of Measure"
+        },
+        {
+          "name": "ITCL",
+          "position": 7,
+          "length": 5,
+          "type": "text",
+          "required": false,
+          "description": "Product Group"
+        },
+        {
+          "name": "PRGP",
+          "position": 8,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Procurement Group"
+        },
+        {
+          "name": "STAT",
+          "position": 9,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Status — 20=active"
+        },
+        {
+          "name": "RESP",
+          "position": 10,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Responsible Engineer"
+        },
+        {
+          "name": "BUYE",
+          "position": 11,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Buyer"
+        },
+        {
+          "name": "SUNO",
+          "position": 12,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Primary Supplier Number"
+        },
+        {
+          "name": "PUPR",
+          "position": 13,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Purchase Price"
+        },
+        {
+          "name": "LEA1",
+          "position": 14,
+          "length": 3,
+          "type": "numeric",
+          "required": false,
+          "description": "Supply Lead Time days"
+        },
+        {
+          "name": "ECVE",
+          "position": 15,
+          "length": 4,
+          "type": "text",
+          "required": false,
+          "description": "Revision Number"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "type": "text",
+          "length": 7,
+          "description": "Message ID — blank = success; non-blank = error code"
+        },
+        {
+          "name": "MSDT",
+          "type": "text",
+          "length": 100,
+          "description": "Error detail"
+        }
+      ]
+    },
+    {
+      "name": "AddItmFac",
+      "description": "Add Item Facility — creates the facility-level record in MITFAC. Must be called after AddItmViaItmTyp or AddItmBasic; item cannot be used at a facility until this record exists.",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "FACI",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Facility (e.g. 'L' Melbourne, 'D' JB)"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number — must already exist in MITMAS"
+        },
+        {
+          "name": "STAT",
+          "position": 4,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Facility-level status — 20=active"
+        },
+        {
+          "name": "OPLC",
+          "position": 5,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Planning policy"
+        },
+        {
+          "name": "ORTY",
+          "position": 6,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Order type"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "type": "text",
+          "length": 7,
+          "description": "Message ID — blank = success; non-blank = error code"
+        },
+        {
+          "name": "MSDT",
+          "type": "text",
+          "length": 100,
+          "description": "Error detail"
+        }
+      ]
+    },
+    {
+      "name": "AddItmWhs",
+      "description": "Add Item Warehouse — creates the warehouse-level record in MITWHL. Called after AddItmFac; required before warehouse transactions (receipts, issues, balances) can reference the item.",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "WHLO",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Warehouse"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item Number — must already exist in MITMAS and MITFAC for this facility"
+        },
+        {
+          "name": "STAT",
+          "position": 4,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Warehouse-level status — 20=active"
+        },
+        {
+          "name": "SUNO",
+          "position": 5,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Primary Supplier for this warehouse"
+        },
+        {
+          "name": "REOP",
+          "position": 6,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Re-order point quantity"
+        },
+        {
+          "name": "EOQT",
+          "position": 7,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Economic order quantity"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "MSID",
+          "type": "text",
+          "length": 7,
+          "description": "Message ID — blank = success; non-blank = error code"
+        },
+        {
+          "name": "MSDT",
+          "type": "text",
+          "length": 100,
+          "description": "Error detail"
+        }
+      ]
     }
   ]
 }

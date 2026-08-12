@@ -34,7 +34,18 @@
 
 **Start:** Read ai/memory/learnings.md → /plan for complex tasks
 **During:** Check skills manifest → /m3-lookup for MI programs → Write tests
-**End:** Tests pass → No credentials/PII → /capture-learning if applicable → Commit
+**End:** Tests pass → No credentials/PII → /capture-learning if applicable → **Run generate-openapi** → Commit
+
+## Before Every Commit / PR
+
+If you added, removed, or changed any controller routes, request/response models, or transaction JSON configs, regenerate the OpenAPI spec or the CI pipeline will fail:
+
+```powershell
+cd C:\Projects\MOVEX\API-Integration\movex-rest-api
+.\scripts\generate-openapi.ps1
+```
+
+Then stage the updated spec file alongside your other changes.
 
 ---
 

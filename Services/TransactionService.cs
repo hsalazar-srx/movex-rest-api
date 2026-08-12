@@ -128,6 +128,12 @@ namespace Movex.API.Services
 
                 if (startsWithNok)
                 {
+                    // For list transactions, NOK on the first call = no records found (empty result, not an error)
+                    if (txDef.ReturnsList)
+                    {
+                        _logger.LogInformation("List transaction returned NOK (no records found)");
+                        return new List<Dictionary<string, object?>>();
+                    }
                     _logger.LogWarning("Transaction returned NOK prefix, returning raw response for error handling");
                     return rawResponse ?? string.Empty;
                 }
@@ -137,21 +143,56 @@ namespace Movex.API.Services
                 {
                     if (txDef.ReturnsList)
                     {
-                        var parsedList = _responseParser.ParseResponseList(safeRawResponse, txDef.ResponseFields);
-                        if (startsWithOk)
+                        var allRecords = new List<Dictionary<string, object?>>();
+                        string currentRaw = safeRawResponse;
+                        int maxIterations = 500;
+
+                        for (int i = 0; i < maxIterations; i++)
                         {
-                            foreach (var record in parsedList)
+                            string trimmed = currentRaw.TrimStart();
+
+                            // M3 list protocol termination signals:
+                            // - NOK = error / no records found
+                            // - OK  = end-of-list (sent after the last record is repeated)
+                            // Both mean: stop, do not add this buffer as a record.
+                            if (trimmed.StartsWith("NOK", StringComparison.OrdinalIgnoreCase) ||
+                                trimmed.StartsWith("OK", StringComparison.OrdinalIgnoreCase))
                             {
-                                EnsureM3SuccessFields(record);
+                                break;
                             }
+
+                            string dataPayload = currentRaw.Length > 15 ? currentRaw.Substring(15) : string.Empty;
+                            if (string.IsNullOrWhiteSpace(dataPayload))
+                            {
+                                break;
+                            }
+
+                            var parsed = _responseParser.ParseResponse(currentRaw, txDef.ResponseFields);
+                            if (parsed.Count > 0)
+                                allRecords.Add(parsed);
+
+                            string nextRaw = await pooled.Connection.SendReceiveNextAsync(transactionString) ?? string.Empty;
+                            if (string.IsNullOrEmpty(nextRaw))
+                            {
+                                break;
+                            }
+                            currentRaw = nextRaw;
                         }
-                        _logger.LogInformation("Transaction completed successfully, parsed list with {RecordCount} records", parsedList.Count);
-                        return parsedList;
+
+                        // Always discard list connections — M3 sockets retain list session
+                        // state even after the OK terminator, and will respond REP (not OK)
+                        // to the next transaction on the same socket, silently dropping writes.
+                        pooled.IsHealthy = false;
+
+                        _logger.LogInformation("List transaction completed, {RecordCount} records", allRecords.Count);
+                        return allRecords;
                     }
                     else
                     {
                         var parsedResponse = _responseParser.ParseResponse(safeRawResponse, txDef.ResponseFields);
-                        if (startsWithOk)
+                        bool startsWithRep = safeRawResponse.TrimStart().StartsWith("REP", StringComparison.OrdinalIgnoreCase);
+                        // OK = explicit success; REP = data record returned — both indicate success for single-record calls
+                        if (startsWithOk || startsWithRep)
                         {
                             EnsureM3SuccessFields(parsedResponse);
                         }
@@ -159,6 +200,11 @@ namespace Movex.API.Services
                         return parsedResponse;
                     }
                 }
+
+                // Raw mode on a list transaction leaves the M3 cursor mid-stream.
+                // Mark the connection unhealthy so it is not reused with stale cursor state.
+                if (txDef.ReturnsList)
+                    pooled.IsHealthy = false;
 
                 _logger.LogInformation("Transaction completed successfully, response length: {Length}", safeRawResponse.Length);
                 return rawResponse ?? string.Empty;
@@ -204,10 +250,9 @@ namespace Movex.API.Services
                 return;
             }
 
-            if (!parsedResponse.ContainsKey("MSID"))
-            {
-                parsedResponse["MSID"] = "000";
-            }
+            // Always overwrite — the parser may have read "OK " from the buffer into MSID
+            // when responseFields are defined but the response is just an OK/NOK prefix.
+            parsedResponse["MSID"] = "000";
 
             if (!parsedResponse.ContainsKey("MSDT"))
             {

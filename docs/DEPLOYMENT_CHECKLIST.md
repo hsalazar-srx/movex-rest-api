@@ -11,6 +11,7 @@
 
 ### 1.1 Code Verification
 - [ ] All changes committed and pushed to repository
+- [ ] OpenAPI spec regenerated (required if routes or models changed): `.\scripts\generate-openapi.ps1`
 - [ ] Build succeeds: `dotnet build -c Release` → 0 errors
 - [ ] All transaction configs present in `transactions/` folder:
   - [ ] `MMS200MI.json` (GetItmBasic, GetItmWhsBal)
