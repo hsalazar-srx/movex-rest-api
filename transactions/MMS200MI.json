@@ -288,7 +288,7 @@
     },
     {
       "name": "UpdItmBasic",
-      "description": "Update Item Basic Information",
+      "description": "Update Item Basic Information (MITMAS). Optional fields are applied only when supplied non-blank; omitted fields leave existing M3 values unchanged.",
       "httpMethod": "POST",
       "returnsList": false,
       "fields": [
@@ -297,63 +297,24 @@
           "position": 1,
           "length": 3,
           "type": "numeric",
-          "startIndex": 16,
           "required": true,
-          "description": "Company Number"
-        },
-        {
-          "name": "ITNO",
-          "position": 2,
-          "length": 15,
-          "type": "text",
-          "startIndex": 19,
-          "required": true,
-          "description": "Item Number"
+          "description": "Company"
         },
         {
           "name": "STAT",
-          "position": 3,
+          "position": 2,
           "length": 2,
           "type": "text",
-          "startIndex": 34,
           "required": false,
           "description": "Status"
         },
         {
-          "name": "ITDS",
-          "position": 4,
-          "length": 30,
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
           "type": "text",
-          "startIndex": 36,
-          "required": false,
-          "description": "Item Name"
-        },
-        {
-          "name": "FUDS",
-          "position": 5,
-          "length": 30,
-          "type": "text",
-          "startIndex": 66,
-          "required": false,
-          "description": "Description 2"
-        },
-        {
-          "name": "RESP",
-          "position": 6,
-          "length": 10,
-          "type": "text",
-          "startIndex": 146,
-          "required": false,
-          "description": "Responsible"
-        },
-        {
-          "name": "UNMS",
-          "position": 7,
-          "length": 3,
-          "type": "text",
-          "startIndex": 156,
-          "required": false,
-          "description": "Basic Unit of Measure"
+          "required": true,
+          "description": "Item number"
         }
       ],
       "responseFields": []
@@ -488,18 +449,21 @@
       "responseFields": [
         {
           "name": "MSID",
+          "position": 1,
           "type": "text",
           "length": 7,
           "description": "Message ID — blank = success; non-blank = error code"
         },
         {
           "name": "MSDT",
+          "position": 2,
           "type": "text",
           "length": 100,
           "description": "Error detail"
         },
         {
           "name": "ITNO",
+          "position": 3,
           "type": "text",
           "length": 15,
           "description": "Created item number (echo)"
@@ -636,12 +600,14 @@
       "responseFields": [
         {
           "name": "MSID",
+          "position": 1,
           "type": "text",
           "length": 7,
           "description": "Message ID — blank = success; non-blank = error code"
         },
         {
           "name": "MSDT",
+          "position": 2,
           "type": "text",
           "length": 100,
           "description": "Error detail"
@@ -706,12 +672,14 @@
       "responseFields": [
         {
           "name": "MSID",
+          "position": 1,
           "type": "text",
           "length": 7,
           "description": "Message ID — blank = success; non-blank = error code"
         },
         {
           "name": "MSDT",
+          "position": 2,
           "type": "text",
           "length": 100,
           "description": "Error detail"
@@ -784,17 +752,1020 @@
       "responseFields": [
         {
           "name": "MSID",
+          "position": 1,
           "type": "text",
           "length": 7,
           "description": "Message ID — blank = success; non-blank = error code"
         },
         {
           "name": "MSDT",
+          "position": 2,
           "type": "text",
           "length": 100,
           "description": "Error detail"
         }
       ]
+    },
+    {
+      "name": "UpdItmWhs",
+      "description": "Update Item Warehouse (MITBAL). Optional fields are applied only when supplied non-blank; omitted fields leave existing M3 values unchanged.",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "required": true,
+          "description": "Company"
+        },
+        {
+          "name": "WHLO",
+          "position": 2,
+          "length": 3,
+          "type": "text",
+          "required": true,
+          "description": "Warehouse"
+        },
+        {
+          "name": "ITNO",
+          "position": 3,
+          "length": 15,
+          "type": "text",
+          "required": true,
+          "description": "Item number"
+        },
+        {
+          "name": "STQT",
+          "position": 4,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "On-hand balance approved"
+        },
+        {
+          "name": "QUQT",
+          "position": 5,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "On-hand balance for inspection"
+        },
+        {
+          "name": "RJQT",
+          "position": 6,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Rejected on-hand balance"
+        },
+        {
+          "name": "ALQT",
+          "position": 7,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Allocated quantity - basic U/M"
+        },
+        {
+          "name": "AVAL",
+          "position": 8,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Allocatable on-hand balance"
+        },
+        {
+          "name": "PLQT",
+          "position": 9,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Picking list quantity - basic U/M"
+        },
+        {
+          "name": "COMG",
+          "position": 10,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Container management"
+        },
+        {
+          "name": "ALMT",
+          "position": 11,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Allocation method"
+        },
+        {
+          "name": "STMT",
+          "position": 12,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Storage method"
+        },
+        {
+          "name": "SPMT",
+          "position": 13,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Issue method"
+        },
+        {
+          "name": "STTX",
+          "position": 14,
+          "length": 30,
+          "type": "text",
+          "required": false,
+          "description": "Note"
+        },
+        {
+          "name": "ORQT",
+          "position": 15,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Ordered quantity - basic U/M"
+        },
+        {
+          "name": "REQT",
+          "position": 16,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Reserved quantity"
+        },
+        {
+          "name": "RLQT",
+          "position": 17,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Reserved quantity to backorder"
+        },
+        {
+          "name": "REQP",
+          "position": 18,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Reserved quantity - planned orders"
+        },
+        {
+          "name": "IDDT",
+          "position": 19,
+          "length": 10,
+          "type": "date",
+          "required": false,
+          "description": "Last receipt date"
+        },
+        {
+          "name": "ODDT",
+          "position": 20,
+          "length": 10,
+          "type": "date",
+          "required": false,
+          "description": "Last issue date"
+        },
+        {
+          "name": "INDT",
+          "position": 21,
+          "length": 10,
+          "type": "date",
+          "required": false,
+          "description": "Latest physical inventory date"
+        },
+        {
+          "name": "PRDC",
+          "position": 22,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Priority date selection"
+        },
+        {
+          "name": "INCD",
+          "position": 23,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Physical inventory cycle"
+        },
+        {
+          "name": "NUIN",
+          "position": 24,
+          "length": 4,
+          "type": "decimal",
+          "required": false,
+          "description": "Number of records for physical inventory"
+        },
+        {
+          "name": "USYE",
+          "position": 25,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Annual usage"
+        },
+        {
+          "name": "AVST",
+          "position": 26,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Average on-hand balance"
+        },
+        {
+          "name": "DILE",
+          "position": 27,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Projected on-hand at end of lead time"
+        },
+        {
+          "name": "RESP",
+          "position": 28,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Responsible"
+        },
+        {
+          "name": "BUYE",
+          "position": 29,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Buyer"
+        },
+        {
+          "name": "SUNO",
+          "position": 30,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Supplier number"
+        },
+        {
+          "name": "WHTY",
+          "position": 31,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Warehouse type"
+        },
+        {
+          "name": "WHSY",
+          "position": 32,
+          "length": 1,
+          "type": "text",
+          "required": false,
+          "description": "Warehouse subtype"
+        },
+        {
+          "name": "INSC",
+          "position": 33,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Statistics storage group"
+        },
+        {
+          "name": "DIGR",
+          "position": 34,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Distribution group"
+        },
+        {
+          "name": "WHSL",
+          "position": 35,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Location"
+        },
+        {
+          "name": "SLTP",
+          "position": 36,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Stock zone"
+        },
+        {
+          "name": "NUS7",
+          "position": 37,
+          "length": 7,
+          "type": "decimal",
+          "required": false,
+          "description": "Number of balance IDs"
+        },
+        {
+          "name": "TOMU",
+          "position": 38,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Issue multiple"
+        },
+        {
+          "name": "WHLT",
+          "position": 39,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Location type"
+        },
+        {
+          "name": "PISE",
+          "position": 40,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Warehouse equipment"
+        },
+        {
+          "name": "PLCD",
+          "position": 41,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Planning policy"
+        },
+        {
+          "name": "MABC",
+          "position": 42,
+          "length": 1,
+          "type": "text",
+          "required": false,
+          "description": "ABC class - manual"
+        },
+        {
+          "name": "ABCD",
+          "position": 43,
+          "length": 1,
+          "type": "text",
+          "required": false,
+          "description": "ABC class - volume"
+        },
+        {
+          "name": "ABCM",
+          "position": 44,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "ABC method  - volume"
+        },
+        {
+          "name": "ABFC",
+          "position": 45,
+          "length": 1,
+          "type": "text",
+          "required": false,
+          "description": "ABC class - frequency"
+        },
+        {
+          "name": "ABFM",
+          "position": 46,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "ABC method - frequency"
+        },
+        {
+          "name": "ACOC",
+          "position": 47,
+          "length": 1,
+          "type": "text",
+          "required": false,
+          "description": "ABC class - contribution"
+        },
+        {
+          "name": "ACOM",
+          "position": 48,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "ABC method - contribution"
+        },
+        {
+          "name": "PRIF",
+          "position": 49,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Priority value"
+        },
+        {
+          "name": "SODY",
+          "position": 50,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Run-out time"
+        },
+        {
+          "name": "REOP",
+          "position": 51,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Reorder point"
+        },
+        {
+          "name": "OPOM",
+          "position": 52,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Reorder point method"
+        },
+        {
+          "name": "SSQT",
+          "position": 53,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Safety stock"
+        },
+        {
+          "name": "SSMT",
+          "position": 54,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Safety stock method"
+        },
+        {
+          "name": "MSSQ",
+          "position": 55,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Manual safety stock"
+        },
+        {
+          "name": "SSDA",
+          "position": 56,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Safety stock unit"
+        },
+        {
+          "name": "SCGR",
+          "position": 57,
+          "length": 5,
+          "type": "decimal",
+          "required": false,
+          "description": "Service level"
+        },
+        {
+          "name": "MXST",
+          "position": 58,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Maximum stock"
+        },
+        {
+          "name": "MXSM",
+          "position": 59,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Maximum stock method"
+        },
+        {
+          "name": "MXPC",
+          "position": 60,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Maximum stock percentage"
+        },
+        {
+          "name": "EOQT",
+          "position": 61,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Order quantity"
+        },
+        {
+          "name": "EOQM",
+          "position": 62,
+          "length": 2,
+          "type": "decimal",
+          "required": false,
+          "description": "Order policy"
+        },
+        {
+          "name": "EQDA",
+          "position": 63,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Economical order quantity days"
+        },
+        {
+          "name": "YEQT",
+          "position": 64,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Annual demand"
+        },
+        {
+          "name": "YEQM",
+          "position": 65,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Annual demand method"
+        },
+        {
+          "name": "LOQT",
+          "position": 66,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Minimum order quantity"
+        },
+        {
+          "name": "MOQT",
+          "position": 67,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Maximum order quantity"
+        },
+        {
+          "name": "PUIT",
+          "position": 68,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Acquisition code"
+        },
+        {
+          "name": "SUWH",
+          "position": 69,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Supplying warehouse"
+        },
+        {
+          "name": "DPID",
+          "position": 70,
+          "length": 2,
+          "type": "decimal",
+          "required": false,
+          "description": "Period frame"
+        },
+        {
+          "name": "PRCD",
+          "position": 71,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Forecast method"
+        },
+        {
+          "name": "FCCM",
+          "position": 72,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Forecast logic"
+        },
+        {
+          "name": "LYQT",
+          "position": 73,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Fixed annual demand"
+        },
+        {
+          "name": "LRYE",
+          "position": 74,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Fixed acquisition requirement"
+        },
+        {
+          "name": "PFTM",
+          "position": 75,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Planning time fence"
+        },
+        {
+          "name": "LEA1",
+          "position": 76,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Supply lead time"
+        },
+        {
+          "name": "LEA2",
+          "position": 77,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Inspection lead time"
+        },
+        {
+          "name": "LEA3",
+          "position": 78,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Transportation lead time"
+        },
+        {
+          "name": "LEAT",
+          "position": 79,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Lead time"
+        },
+        {
+          "name": "UNMU",
+          "position": 80,
+          "length": 17,
+          "type": "decimal",
+          "required": false,
+          "description": "Order multiple"
+        },
+        {
+          "name": "SVEI",
+          "position": 81,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Multiple supply"
+        },
+        {
+          "name": "LEVL",
+          "position": 82,
+          "length": 2,
+          "type": "decimal",
+          "required": false,
+          "description": "Lowest level"
+        },
+        {
+          "name": "LEVD",
+          "position": 83,
+          "length": 2,
+          "type": "decimal",
+          "required": false,
+          "description": "Lowest level DO"
+        },
+        {
+          "name": "PLHZ",
+          "position": 84,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Planning horizon"
+        },
+        {
+          "name": "DMFN",
+          "position": 85,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Demand time fence"
+        },
+        {
+          "name": "ORTY",
+          "position": 86,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Order type"
+        },
+        {
+          "name": "CONC",
+          "position": 87,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Continuous net change"
+        },
+        {
+          "name": "SATD",
+          "position": 88,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Safety time"
+        },
+        {
+          "name": "ALQC",
+          "position": 89,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Quantity controlled allocation"
+        },
+        {
+          "name": "OPLC",
+          "position": 90,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Planning method"
+        },
+        {
+          "name": "MSCH",
+          "position": 91,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Master scheduled"
+        },
+        {
+          "name": "SHCC",
+          "position": 92,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Distribution/supplier calendar check"
+        },
+        {
+          "name": "ZCAC",
+          "position": 93,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Zero mark"
+        },
+        {
+          "name": "INSL",
+          "position": 94,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Inspection location"
+        },
+        {
+          "name": "NCCA",
+          "position": 95,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Net change calculation active"
+        },
+        {
+          "name": "FACI",
+          "position": 96,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Facility"
+        },
+        {
+          "name": "DIVI",
+          "position": 97,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Division"
+        },
+        {
+          "name": "DDEX",
+          "position": 98,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Time phased safety stock exists"
+        },
+        {
+          "name": "STRL",
+          "position": 99,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "History storage method"
+        },
+        {
+          "name": "PLIC",
+          "position": 100,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Picking list information control"
+        },
+        {
+          "name": "PPMC",
+          "position": 101,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Pending planning method change"
+        },
+        {
+          "name": "MPCD",
+          "position": 102,
+          "length": 10,
+          "type": "date",
+          "required": false,
+          "description": "Calculation date - material planning"
+        },
+        {
+          "name": "MPCT",
+          "position": 103,
+          "length": 6,
+          "type": "decimal",
+          "required": false,
+          "description": "Calculation time - material planning"
+        },
+        {
+          "name": "DCSS",
+          "position": 104,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Time phased safety stock"
+        },
+        {
+          "name": "RPOP",
+          "position": 105,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Responsible - PO proposal"
+        },
+        {
+          "name": "BCOS",
+          "position": 106,
+          "length": 19,
+          "type": "decimal",
+          "required": false,
+          "description": "Standard cost - warehouse"
+        },
+        {
+          "name": "TXID",
+          "position": 107,
+          "length": 13,
+          "type": "decimal",
+          "required": false,
+          "description": "Text identity"
+        },
+        {
+          "name": "DTID",
+          "position": 108,
+          "length": 13,
+          "type": "decimal",
+          "required": false,
+          "description": "Data identity"
+        },
+        {
+          "name": "DPLO",
+          "position": 109,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Default packing location"
+        },
+        {
+          "name": "DDLO",
+          "position": 110,
+          "length": 10,
+          "type": "text",
+          "required": false,
+          "description": "Default docking location"
+        },
+        {
+          "name": "SPLC",
+          "position": 111,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Delivery split rule"
+        },
+        {
+          "name": "ALS1",
+          "position": 112,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Allocate non-approved balance ID"
+        },
+        {
+          "name": "POOT",
+          "position": 113,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Point of time table"
+        },
+        {
+          "name": "STAT",
+          "position": 114,
+          "length": 2,
+          "type": "text",
+          "required": false,
+          "description": "Status"
+        },
+        {
+          "name": "VTCP",
+          "position": 115,
+          "length": 2,
+          "type": "decimal",
+          "required": false,
+          "description": "VAT code - purchase"
+        },
+        {
+          "name": "VTCS",
+          "position": 116,
+          "length": 2,
+          "type": "decimal",
+          "required": false,
+          "description": "VAT code - sales"
+        },
+        {
+          "name": "MNUN",
+          "position": 117,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "Main unit of calculation"
+        },
+        {
+          "name": "GRTS",
+          "position": 118,
+          "length": 5,
+          "type": "text",
+          "required": false,
+          "description": "Distribution group technology"
+        },
+        {
+          "name": "SLDY",
+          "position": 119,
+          "length": 5,
+          "type": "decimal",
+          "required": false,
+          "description": "Shelf life"
+        },
+        {
+          "name": "REDY",
+          "position": 120,
+          "length": 5,
+          "type": "decimal",
+          "required": false,
+          "description": "Reinspection time"
+        },
+        {
+          "name": "SAEL",
+          "position": 121,
+          "length": 5,
+          "type": "decimal",
+          "required": false,
+          "description": "Sales time"
+        },
+        {
+          "name": "CPCD",
+          "position": 122,
+          "length": 3,
+          "type": "text",
+          "required": false,
+          "description": "CTP policy"
+        },
+        {
+          "name": "LEAQ",
+          "position": 123,
+          "length": 3,
+          "type": "decimal",
+          "required": false,
+          "description": "Quarantine lead-time"
+        },
+        {
+          "name": "SCHT",
+          "position": 124,
+          "length": 1,
+          "type": "decimal",
+          "required": false,
+          "description": "Scheduled re-classification allowed"
+        }
+      ],
+      "responseFields": []
     }
   ]
 }
