@@ -173,6 +173,7 @@
           "position": 1,
           "length": 3,
           "type": "numeric",
+          "startIndex": 16,
           "required": true,
           "description": "Company Number"
         },
@@ -181,14 +182,16 @@
           "position": 2,
           "length": 3,
           "type": "text",
+          "startIndex": 19,
           "required": false,
-          "description": "Facility (optional filter)"
+          "description": "Facility"
         },
         {
           "name": "ITNO",
           "position": 3,
           "length": 15,
           "type": "text",
+          "startIndex": 22,
           "required": false,
           "description": "Item Number (optional filter)"
         }
@@ -199,21 +202,80 @@
           "position": 1,
           "length": 3,
           "type": "numeric",
-          "description": "Company Number"
+          "startIndex": 16,
+          "description": "Company"
         },
         {
           "name": "FACI",
           "position": 2,
           "length": 3,
           "type": "text",
+          "startIndex": 19,
           "description": "Facility"
         },
         {
-          "name": "ITNO",
+          "name": "FACN",
           "position": 3,
+          "length": 30,
+          "type": "text",
+          "startIndex": 22,
+          "description": "Facility name"
+        },
+        {
+          "name": "ITNO",
+          "position": 4,
           "length": 15,
           "type": "text",
-          "description": "Item Number"
+          "startIndex": 52,
+          "description": "Item number"
+        },
+        {
+          "name": "ITDS",
+          "position": 5,
+          "length": 30,
+          "type": "text",
+          "startIndex": 67,
+          "description": "Item description"
+        },
+        {
+          "name": "LEA4",
+          "position": 6,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 97,
+          "description": "Administrative lead time"
+        },
+        {
+          "name": "ORCO",
+          "position": 7,
+          "length": 3,
+          "type": "text",
+          "startIndex": 116,
+          "description": "Country of origin"
+        },
+        {
+          "name": "APPR",
+          "position": 8,
+          "length": 19,
+          "type": "decimal",
+          "startIndex": 119,
+          "description": "Average cost"
+        },
+        {
+          "name": "UCOS",
+          "position": 9,
+          "length": 19,
+          "type": "decimal",
+          "startIndex": 138,
+          "description": "Cost price"
+        },
+        {
+          "name": "REWH",
+          "position": 10,
+          "length": 3,
+          "type": "text",
+          "startIndex": 188,
+          "description": "Main warehouse"
         }
       ]
     },
