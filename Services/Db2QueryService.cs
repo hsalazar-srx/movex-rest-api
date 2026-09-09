@@ -483,6 +483,70 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         }
     }
 
+    // ── MITMAS item search ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Search the item master by item number or description substring.
+    ///
+    /// Queries MITMAS directly rather than going through MMS200MI.LstItmFac.
+    /// That MI works, but M3's list protocol is stateful per socket (one record
+    /// per call, cursor held on the connection), which makes it a poor fit for a
+    /// search that fires on keystrokes — and it cannot filter server-side, so the
+    /// whole facility list would cross the wire for every query. This is one
+    /// indexed statement with no cursor.
+    ///
+    /// Prefix matches on the item number rank first: someone typing "LFAM05"
+    /// wants items starting with it, not every item with that fragment buried in
+    /// a description.
+    ///
+    /// Fetches limit+1 rows so the caller can report truncation without a second
+    /// COUNT(*) over the same predicate.
+    /// </summary>
+    public async Task<IReadOnlyList<ItemSearchRecord>> SearchItemsAsync(
+        string cono,
+        string query,
+        int limit = 25,
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default)
+    {
+        var schema = ResolveSchema(cono);
+        var needle = query.Trim().ToUpperInvariant();
+        var like = "%" + needle + "%";
+        var prefix = needle + "%";
+
+        // MMSTAT 90 = obsolete. Excluded by default; includeInactive keeps them,
+        // which matters because ECNs legitimately revise superseded parts.
+        var statusFilter = includeInactive ? "" : " AND TRIM(MMSTAT) <> '90'";
+
+        var sql = $@"SELECT TRIM(MMITNO) AS ITNO, TRIM(MMITDS) AS ITDS, TRIM(MMITTY) AS ITTY,
+       TRIM(MMSTAT) AS STAT, TRIM(MMUNMS) AS UNMS
+FROM {schema}.MITMAS
+WHERE MMCONO = ?
+  AND (UPPER(TRIM(MMITNO)) LIKE ? OR UPPER(TRIM(MMITDS)) LIKE ?){statusFilter}
+ORDER BY CASE WHEN UPPER(TRIM(MMITNO)) LIKE ? THEN 0 ELSE 1 END, TRIM(MMITNO)
+FETCH FIRST {limit + 1} ROWS ONLY";
+
+        _logger.LogDebug("MITMAS item search: cono={Cono} query={Query} limit={Limit}", cono, query, limit);
+
+        try
+        {
+            using var conn = new OdbcConnection(_settings.ConnectionString);
+            var cmd = new CommandDefinition(
+                sql,
+                BuildOdbcParams(new object[] { cono, like, like, prefix }),
+                commandTimeout: _settings.CommandTimeoutSeconds,
+                cancellationToken: cancellationToken);
+
+            var results = await conn.QueryAsync<ItemSearchRecord>(cmd);
+            return results.ToList();
+        }
+        catch (OdbcException ex)
+        {
+            _logger.LogError(ex, "DB2 error in MITMAS item search: cono={Cono} query={Query}", cono, query);
+            throw;
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private string ResolveSchema(string cono) => cono.Trim() switch
@@ -565,6 +629,14 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         };
     }
 }
+
+/// <summary>Record returned by MITMAS item search.</summary>
+public sealed record ItemSearchRecord(
+    string ITNO,
+    string? ITDS,
+    string? ITTY,
+    string? STAT,
+    string? UNMS);
 
 /// <summary>Record returned by MITPOP alias search.</summary>
 public sealed record MitpopRecord(

@@ -115,6 +115,90 @@ public class Db2QueryController : ControllerBase
     }
 
     /// <summary>
+    /// Search the item master by item number or description substring.
+    ///
+    /// Queries MITMAS directly. MMS200MI.LstItmFac can return the same data, but
+    /// M3's list protocol is stateful per socket and cannot filter server-side,
+    /// which makes it a poor fit for a search that fires on keystrokes.
+    ///
+    /// Minimum two characters — a shorter query matches most of the item master
+    /// and is expensive as well as useless.
+    /// </summary>
+    /// <param name="cono">Company number (default: M3:DEFAULT_COMPANY from config)</param>
+    /// <param name="q">Item number or description substring. Required, min 2 chars.</param>
+    /// <param name="limit">Max rows to return (1-100, default 25).</param>
+    /// <param name="includeInactive">Include obsolete items (MMSTAT 90). Default false.</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    [HttpGet("api/items/search")]
+    [ProducesResponseType(typeof(ItemSearchResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> SearchItems(
+        [FromQuery] string? cono,
+        [FromQuery] string? q,
+        [FromQuery] int limit,
+        [FromQuery] bool includeInactive,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+            return BadRequest(new { success = false, error = "q is required and must be at least 2 characters" });
+
+        var conoResolved = string.IsNullOrWhiteSpace(cono) ? _defaultCono : cono.Trim();
+        var limitResolved = limit <= 0 ? 25 : Math.Min(limit, 100);
+
+        try
+        {
+            var rows = await _db2.SearchItemsAsync(
+                conoResolved, q.Trim(), limitResolved, includeInactive, cancellationToken);
+
+            // SearchItemsAsync fetches limit+1 so truncation is known without a
+            // second COUNT(*) over the same predicate.
+            var truncated = rows.Count > limitResolved;
+            var page = truncated ? rows.Take(limitResolved).ToList() : rows.ToList();
+
+            return Ok(new ItemSearchResponse
+            {
+                Success = true,
+                Cono    = conoResolved,
+                Query   = q.Trim(),
+                Data    = new ItemSearchData
+                {
+                    Records = page.Select(r => new ItemSearchRecordDto
+                    {
+                        ITNO = r.ITNO,
+                        ITDS = r.ITDS,
+                        ITTY = r.ITTY,
+                        STAT = r.STAT,
+                        UNMS = r.UNMS,
+                    }).ToList(),
+                    Count     = page.Count,
+                    Truncated = truncated,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+        {
+            _logger.LogError(ex, "Db2:ConnectionString is not configured");
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                success = false,
+                error   = "DB2 connection string is not configured. Set Db2:ConnectionString in user-secrets (dev) or the IIS env var Db2__ConnectionString (UAT/prod).",
+                detail  = ex.Message,
+            });
+        }
+        catch (OdbcException ex)
+        {
+            _logger.LogError(ex, "DB2 error during MITMAS item search: cono={Cono} q={Query}", conoResolved, q);
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                success = false,
+                error   = "DB2 query failed. Check DB2 connection string and IBM i ODBC driver.",
+                detail  = ex.Message,
+            });
+        }
+    }
+
+    /// <summary>
     /// Get the next available sequence number for a Scanfil APAC part number prefix.
     ///
     /// Queries MAX(TRIM(MMITNO)) FROM MVXCDTA.MITMAS WHERE MMITNO LIKE prefix||'%'.
@@ -486,6 +570,33 @@ public class Db2QueryController : ControllerBase
 }
 
 // ── Response models ───────────────────────────────────────────────────────────
+
+public sealed class ItemSearchResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public string Query   { get; init; } = string.Empty;
+    public ItemSearchData Data { get; init; } = new();
+}
+
+public sealed class ItemSearchData
+{
+    public List<ItemSearchRecordDto> Records { get; init; } = [];
+    public int Count { get; init; }
+
+    /// <summary>True when the result hit the limit — the caller should narrow
+    /// the query rather than present a partial list as complete.</summary>
+    public bool Truncated { get; init; }
+}
+
+public sealed class ItemSearchRecordDto
+{
+    public string  ITNO { get; init; } = string.Empty;
+    public string? ITDS { get; init; }
+    public string? ITTY { get; init; }
+    public string? STAT { get; init; }
+    public string? UNMS { get; init; }
+}
 
 public sealed class MitpopSearchResponse
 {
