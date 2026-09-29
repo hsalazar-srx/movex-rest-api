@@ -523,7 +523,7 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         var statusFilter = includeInactive ? "" : " AND TRIM(MMSTAT) <> '90'";
 
         var sql = $@"SELECT TRIM(MMITNO) AS ITNO, TRIM(MMITDS) AS ITDS, TRIM(MMITTY) AS ITTY,
-       TRIM(MMSTAT) AS STAT, TRIM(MMUNMS) AS UNMS
+       TRIM(MMSTAT) AS STAT, TRIM(MMUNMS) AS UNMS, TRIM(MMITCL) AS ITCL
 FROM {schema}.MITMAS
 WHERE MMCONO = ?
   AND (UPPER(TRIM(MMITNO)) LIKE ? ESCAPE '\' OR UPPER(TRIM(MMITDS)) LIKE ? ESCAPE '\'){statusFilter}
@@ -640,7 +640,8 @@ public sealed record ItemSearchRecord(
     string? ITDS,
     string? ITTY,
     string? STAT,
-    string? UNMS);
+    string? UNMS,
+    string? ITCL);
 
 /// <summary>Record returned by MITPOP alias search.</summary>
 public sealed record MitpopRecord(

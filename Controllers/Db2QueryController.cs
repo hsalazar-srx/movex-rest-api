@@ -170,6 +170,7 @@ public class Db2QueryController : ControllerBase
                         ITTY = r.ITTY,
                         STAT = r.STAT,
                         UNMS = r.UNMS,
+                        ITCL = r.ITCL,
                     }).ToList(),
                     Count     = page.Count,
                     Truncated = truncated,
@@ -596,6 +597,7 @@ public sealed class ItemSearchRecordDto
     public string? ITTY { get; init; }
     public string? STAT { get; init; }
     public string? UNMS { get; init; }
+    public string? ITCL { get; init; }
 }
 
 public sealed class MitpopSearchResponse

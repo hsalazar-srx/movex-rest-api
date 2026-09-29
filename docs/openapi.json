@@ -1571,6 +1571,10 @@
           "unms": {
             "type": "string",
             "nullable": true
+          },
+          "itcl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
