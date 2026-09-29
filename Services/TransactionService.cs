@@ -131,6 +131,12 @@ namespace Movex.API.Services
                     // For list transactions, NOK on the first call = no records found (empty result, not an error)
                     if (txDef.ReturnsList)
                     {
+                        // Discard the connection for the same reason the success
+                        // path does (see below): M3 sockets retain list session
+                        // state, and a reused one starts mid-stream. Missing here
+                        // originally, which made identical list calls return
+                        // different record counts with partially-read rows.
+                        pooled.IsHealthy = false;
                         _logger.LogInformation("List transaction returned NOK (no records found)");
                         return new List<Dictionary<string, object?>>();
                     }
