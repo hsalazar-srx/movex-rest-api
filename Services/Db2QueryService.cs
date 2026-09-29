@@ -511,8 +511,12 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
     {
         var schema = ResolveSchema(cono);
         var needle = query.Trim().ToUpperInvariant();
-        var like = "%" + needle + "%";
-        var prefix = needle + "%";
+        var escapedNeedle = needle
+            .Replace(@"\", @"\\", StringComparison.Ordinal)
+            .Replace("%", @"\%", StringComparison.Ordinal)
+            .Replace("_", @"\_", StringComparison.Ordinal);
+        var like = "%" + escapedNeedle + "%";
+        var prefix = escapedNeedle + "%";
 
         // MMSTAT 90 = obsolete. Excluded by default; includeInactive keeps them,
         // which matters because ECNs legitimately revise superseded parts.
@@ -522,8 +526,8 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
        TRIM(MMSTAT) AS STAT, TRIM(MMUNMS) AS UNMS
 FROM {schema}.MITMAS
 WHERE MMCONO = ?
-  AND (UPPER(TRIM(MMITNO)) LIKE ? OR UPPER(TRIM(MMITDS)) LIKE ?){statusFilter}
-ORDER BY CASE WHEN UPPER(TRIM(MMITNO)) LIKE ? THEN 0 ELSE 1 END, TRIM(MMITNO)
+  AND (UPPER(TRIM(MMITNO)) LIKE ? ESCAPE '\' OR UPPER(TRIM(MMITDS)) LIKE ? ESCAPE '\'){statusFilter}
+ORDER BY CASE WHEN UPPER(TRIM(MMITNO)) LIKE ? ESCAPE '\' THEN 0 ELSE 1 END, TRIM(MMITNO)
 FETCH FIRST {limit + 1} ROWS ONLY";
 
         _logger.LogDebug("MITMAS item search: cono={Cono} query={Query} limit={Limit}", cono, query, limit);
