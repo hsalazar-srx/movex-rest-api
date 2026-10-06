@@ -568,6 +568,54 @@ public class Db2QueryController : ControllerBase
         catch (OdbcException ex)
             { return Db2Error(_logger, ex, $"ZECNMPMS export cono={conoResolved}"); }
     }
+
+    // ── C-2: ZECNCIRF export ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Paged export of Stargile reference designators (ZECNCIRF, migration only), every parent.
+    /// Raw/untransformed — CIRF is not range-expanded; that is the import script's job.
+    /// </summary>
+    [HttpGet("api/circuit-refs/export")]
+    [ProducesResponseType(typeof(ZecncirfExportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> ExportZecncirf(
+        [FromQuery] string? cono,
+        [FromQuery] int offset = 0,
+        [FromQuery] int limit  = 1000,
+        CancellationToken cancellationToken = default)
+    {
+        var conoResolved = string.IsNullOrWhiteSpace(cono) ? _defaultCono : cono.Trim();
+
+        if (limit < 1 || limit > 5000)
+            return BadRequest(new { success = false, error = "limit must be between 1 and 5000" });
+        if (offset < 0)
+            return BadRequest(new { success = false, error = "offset must not be negative" });
+
+        try
+        {
+            var (records, total) = await _db2.ExportZecncirfAsync(conoResolved, offset, limit, cancellationToken);
+
+            return Ok(new ZecncirfExportResponse
+            {
+                Success = true,
+                Cono    = conoResolved,
+                Data    = new ZecncirfExportData
+                {
+                    Records = records.Select(r => new ZecncirfDto(
+                        r.FACI, r.PRNO, r.STRT, r.MSEQ, r.FDAT, r.TDAT, r.ZECNID,
+                        r.CIRF, r.CIRFLEN)).ToList(),
+                    Offset  = offset,
+                    Limit   = limit,
+                    Total   = total,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+            { return NotConfigured(_logger, ex); }
+        catch (OdbcException ex)
+            { return Db2Error(_logger, ex, $"ZECNCIRF export cono={conoResolved}"); }
+    }
 }
 
 // ── Response models ───────────────────────────────────────────────────────────
@@ -781,6 +829,32 @@ public sealed record ZecnmpmsDto(
     string?  MPFACI,
     decimal? MPLMDT,
     decimal? MPLMTM);
+
+public sealed record ZecncirfDto(
+    string   FACI,
+    string   PRNO,
+    string   STRT,
+    decimal  MSEQ,
+    decimal  FDAT,
+    decimal? TDAT,
+    decimal? ZECNID,
+    string?  CIRF,
+    decimal? CIRFLEN);
+
+public sealed class ZecncirfExportResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public ZecncirfExportData Data { get; init; } = new();
+}
+
+public sealed class ZecncirfExportData
+{
+    public List<ZecncirfDto> Records { get; init; } = [];
+    public int Offset { get; init; }
+    public int Limit  { get; init; }
+    public int Total  { get; init; }
+}
 
 public sealed class ZecnmpmsExportResponse
 {
