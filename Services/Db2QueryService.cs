@@ -26,6 +26,7 @@
 //   - CONO must always appear in WHERE clause (multi-company tables)
 //   - Schema is runtime-determined from cono: 100→SchemaCmp100, 300→SchemaCmp300
 //   - Stargile tables use SchemaStargile (independent of CONO)
+using System.Text;
 using System.Data.Odbc;
 using Dapper;
 using Microsoft.Extensions.Logging;
@@ -506,7 +507,7 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
        CAST(CRFDAT AS DECIMAL(15,0)) AS FDAT,
        CAST(CRTDAT AS DECIMAL(15,0)) AS TDAT,
        CAST(CRZECNID AS DECIMAL(15,0)) AS ZECNID,
-       CAST(CRZCIRRF AS VARCHAR(4096)) AS CIRF,
+       CRZCIRRF AS CIRF,
        CAST(LENGTH(CRZCIRRF) AS DECIMAL(15,0)) AS CIRFLEN
 FROM {stargileSchema}.ZECNCIRF
 WHERE CRCONO = ?
@@ -523,9 +524,23 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
                 new CommandDefinition(countSql, BuildOdbcParams(new object[] { cono }),
                     commandTimeout: _settings.CommandTimeoutSeconds, cancellationToken: cancellationToken));
 
-            var records = (await conn.QueryAsync<ZecncirfRecord>(
+            using var reader = await conn.ExecuteReaderAsync(
                 new CommandDefinition(dataSql, BuildOdbcParams(new object[] { cono, offset, limit }),
-                    commandTimeout: _settings.CommandTimeoutSeconds, cancellationToken: cancellationToken))).ToList();
+                    commandTimeout: _settings.CommandTimeoutSeconds, cancellationToken: cancellationToken));
+            var records = new List<ZecncirfRecord>();
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                records.Add(new ZecncirfRecord(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    Convert.ToDecimal(reader.GetValue(3)),
+                    Convert.ToDecimal(reader.GetValue(4)),
+                    ReadNullableDecimal(reader, 5),
+                    ReadNullableDecimal(reader, 6),
+                    ReadClob(reader, 7),
+                    ReadNullableDecimal(reader, 8)));
+            }
 
             return (records, total);
         }
@@ -684,6 +699,27 @@ FETCH FIRST {limit + 1} ROWS ONLY";
             9 => new { p0 = values[0], p1 = values[1], p2 = values[2], p3 = values[3], p4 = values[4], p5 = values[5], p6 = values[6], p7 = values[7], p8 = values[8] },
             _ => throw new ArgumentOutOfRangeException(nameof(values), "Max 9 positional parameters supported")
         };
+    }
+
+    private static decimal? ReadNullableDecimal(System.Data.Common.DbDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? null : Convert.ToDecimal(reader.GetValue(ordinal));
+
+    private static string? ReadClob(System.Data.Common.DbDataReader reader, int ordinal)
+    {
+        if (reader.IsDBNull(ordinal))
+            return null;
+
+        var value = new StringBuilder();
+        var buffer = new char[8192];
+        long offset = 0;
+        long read;
+        while ((read = reader.GetChars(ordinal, offset, buffer, 0, buffer.Length)) > 0)
+        {
+            value.Append(buffer, 0, checked((int)read));
+            offset += read;
+        }
+
+        return value.ToString();
     }
 }
 
