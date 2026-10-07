@@ -17,7 +17,7 @@
 //   All BOM reads fetch all rows then apply effectivity filtering in app code.
 //   PDZ100MI (multi-level explosion) is broken in M3 — recursive CTE used instead.
 //
-// C-1 / M-1: Stargile custom tables ZECNCIRF and ZECNMPMS, schema MOVEX (SchemaStargile).
+// C-1 / C-2 / M-1: Stargile custom tables ZECNCIRF and ZECNMPMS, schema MOVEX (SchemaStargile).
 //   No MI program equivalent — DDL confirmed from SuperTool Stargile source 2026-07-28.
 //
 // SQL notes (IBM i 7.4):
@@ -26,6 +26,7 @@
 //   - CONO must always appear in WHERE clause (multi-company tables)
 //   - Schema is runtime-determined from cono: 100→SchemaCmp100, 300→SchemaCmp300
 //   - Stargile tables use SchemaStargile (independent of CONO)
+using System.Text;
 using System.Data.Odbc;
 using Dapper;
 using Microsoft.Extensions.Logging;
@@ -483,6 +484,73 @@ OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         }
     }
 
+    // ── ZECNCIRF export — paged (C-2) ────────────────────────────────────────
+
+    /// <summary>
+    /// Paged export of Stargile reference designators (ZECNCIRF), every parent at once — the
+    /// bulk counterpart of C-1, which is per parent. Raw: CIRF is the CLOB text as stored, not
+    /// expanded, so the caller can apply the same range expansion as C-1. CIRFLEN is the
+    /// stored length, so a value that reads back empty can be told apart from one stored empty.
+    /// </summary>
+    public async Task<(IReadOnlyList<ZecncirfRecord> Records, int Total)> ExportZecncirfAsync(
+        string cono,
+        int offset,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        var stargileSchema = ResolveStargileSchema(cono);
+        var countSql = $"SELECT COUNT(*) FROM {stargileSchema}.ZECNCIRF WHERE CRCONO = ?";
+
+        // Column names from Stargile's DDL (Docs/ZECNCIRF.sql); CRZCIRRF is a CLOB.
+        var dataSql = $@"SELECT TRIM(CRFACI) AS FACI, TRIM(CRPRNO) AS PRNO, TRIM(CRSTRT) AS STRT,
+       CAST(CRMSEQ AS DECIMAL(15,0)) AS MSEQ,
+       CAST(CRFDAT AS DECIMAL(15,0)) AS FDAT,
+       CAST(CRTDAT AS DECIMAL(15,0)) AS TDAT,
+       CAST(CRZECNID AS DECIMAL(15,0)) AS ZECNID,
+       CRZCIRRF AS CIRF,
+       CAST(LENGTH(CRZCIRRF) AS DECIMAL(15,0)) AS CIRFLEN
+FROM {stargileSchema}.ZECNCIRF
+WHERE CRCONO = ?
+ORDER BY CRFACI, CRPRNO, CRSTRT, CRMSEQ, CRFDAT
+OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+
+        _logger.LogDebug("ZECNCIRF export: cono={Cono} offset={Offset} limit={Limit}", cono, offset, limit);
+
+        try
+        {
+            using var conn = new OdbcConnection(_settings.ConnectionString);
+
+            var total = await conn.ExecuteScalarAsync<int>(
+                new CommandDefinition(countSql, BuildOdbcParams(new object[] { cono }),
+                    commandTimeout: _settings.CommandTimeoutSeconds, cancellationToken: cancellationToken));
+
+            using var reader = await conn.ExecuteReaderAsync(
+                new CommandDefinition(dataSql, BuildOdbcParams(new object[] { cono, offset, limit }),
+                    commandTimeout: _settings.CommandTimeoutSeconds, cancellationToken: cancellationToken));
+            var records = new List<ZecncirfRecord>();
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                records.Add(new ZecncirfRecord(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    Convert.ToDecimal(reader.GetValue(3)),
+                    Convert.ToDecimal(reader.GetValue(4)),
+                    ReadNullableDecimal(reader, 5),
+                    ReadNullableDecimal(reader, 6),
+                    ReadClob(reader, 7),
+                    ReadNullableDecimal(reader, 8)));
+            }
+
+            return (records, total);
+        }
+        catch (OdbcException ex)
+        {
+            _logger.LogError(ex, "DB2 error in ZECNCIRF export: cono={Cono}", cono);
+            throw;
+        }
+    }
+
     // ── MITMAS item search ────────────────────────────────────────────────────
 
     /// <summary>
@@ -632,6 +700,27 @@ FETCH FIRST {limit + 1} ROWS ONLY";
             _ => throw new ArgumentOutOfRangeException(nameof(values), "Max 9 positional parameters supported")
         };
     }
+
+    private static decimal? ReadNullableDecimal(System.Data.Common.DbDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? null : Convert.ToDecimal(reader.GetValue(ordinal));
+
+    private static string? ReadClob(System.Data.Common.DbDataReader reader, int ordinal)
+    {
+        if (reader.IsDBNull(ordinal))
+            return null;
+
+        var value = new StringBuilder();
+        var buffer = new char[8192];
+        long offset = 0;
+        long read;
+        while ((read = reader.GetChars(ordinal, offset, buffer, 0, buffer.Length)) > 0)
+        {
+            value.Append(buffer, 0, checked((int)read));
+            offset += read;
+        }
+
+        return value.ToString();
+    }
 }
 
 /// <summary>Record returned by MITMAS item search.</summary>
@@ -739,6 +828,18 @@ public sealed record CircuitRefRecord(
 /// MPDIST/MPDISTNM do not exist on this table — removed after source verification.
 /// All numeric fields are decimal? — DB2 for i returns all numeric types as decimal over ODBC.
 /// </summary>
+/// <summary>Raw ZECNCIRF row (C-2). CIRF is unexpanded.</summary>
+public sealed record ZecncirfRecord(
+    string   FACI,
+    string   PRNO,
+    string   STRT,
+    decimal  MSEQ,
+    decimal  FDAT,
+    decimal? TDAT,
+    decimal? ZECNID,
+    string?  CIRF,
+    decimal? CIRFLEN);
+
 public sealed record ZecnmpmsRecord(
     string   ITNO,
     string?  SUNO,
