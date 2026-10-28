@@ -142,7 +142,9 @@ namespace Movex.API
                     return string.Empty;
 
                 iteration++;
-                buffer = new byte[countExpected - 4];
+                // Read only the bytes still missing. Sizing this to the full message let a partial read
+                // swallow the start of the next record (M3 sends list records back-to-back).
+                buffer = new byte[countExpected - countTotalReceived];
             }
             while (countExpected > countTotalReceived);
 
