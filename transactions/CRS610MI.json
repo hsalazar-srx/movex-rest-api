@@ -30,16 +30,8 @@
       ],
       "responseFields": [
         {
-          "name": "CONO",
-          "position": 1,
-          "length": 3,
-          "type": "numeric",
-          "startIndex": 16,
-          "description": "Company"
-        },
-        {
           "name": "CUNO",
-          "position": 2,
+          "position": 1,
           "length": 10,
           "type": "text",
           "startIndex": 24,
@@ -47,7 +39,7 @@
         },
         {
           "name": "CUNM",
-          "position": 3,
+          "position": 2,
           "length": 36,
           "type": "text",
           "startIndex": 34,
@@ -55,7 +47,7 @@
         },
         {
           "name": "STAT",
-          "position": 4,
+          "position": 3,
           "length": 2,
           "type": "text",
           "startIndex": 840,

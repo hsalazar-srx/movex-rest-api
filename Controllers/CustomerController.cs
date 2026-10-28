@@ -1,6 +1,7 @@
 // Controllers/CustomerController.cs
 // GET /api/customers/basic — customer number, name and status for chosen statuses (?status=20,90).
-// Wraps CRS610MI/LstByNumber, which has no status input: the full list is read and filtered on STAT here.
+// Wraps CRS610MI/LstByNumber, which has no status input and returns 100 records per call:
+// the full list is paged by CUNO and filtered on STAT here.
 using Microsoft.AspNetCore.Mvc;
 using Movex.API.Core.Interfaces;
 
@@ -9,6 +10,8 @@ namespace Movex.API.Controllers;
 [ApiController]
 public class CustomerController : ControllerBase
 {
+    private const int MaxPages = 100;
+
     private readonly ITransactionService _service;
     private readonly ILogger<CustomerController> _logger;
     private readonly string _defaultCono;
@@ -46,13 +49,43 @@ public class CustomerController : ControllerBase
 
         try
         {
-            var response = await _service.ExecuteTransactionAsync(
-                "CRS610MI", "LstByNumber", new Dictionary<string, string> { ["CONO"] = conoResolved });
+            // M3 returns at most 100 records per list call, so page by customer number: each call starts at
+            // the last CUNO seen and stops when a call adds nothing new (the start record repeats, hence the HashSet).
+            var all = new List<Dictionary<string, object?>>();
+            var seen = new HashSet<string>();
+            string? start = null;
 
-            if (response is not List<Dictionary<string, object?>> all)
+            for (var page = 0; page < MaxPages; page++)
             {
-                _logger.LogError("CRS610MI/LstByNumber returned an unexpected response: {Response}", response);
-                return StatusCode(StatusCodes.Status502BadGateway, new { success = false, error = "CRS610MI/LstByNumber did not return a list." });
+                var fields = new Dictionary<string, string> { ["CONO"] = conoResolved };
+                if (start is not null)
+                    fields["CUNO"] = start;
+
+                var response = await _service.ExecuteTransactionAsync("CRS610MI", "LstByNumber", fields);
+
+                if (response is not List<Dictionary<string, object?>> pageRecords)
+                {
+                    _logger.LogError("CRS610MI/LstByNumber returned an unexpected response: {Response}", response);
+                    return StatusCode(StatusCodes.Status502BadGateway, new { success = false, error = "CRS610MI/LstByNumber did not return a list." });
+                }
+
+                var added = 0;
+                foreach (var r in pageRecords)
+                {
+                    if (seen.Add(r.GetValueOrDefault("CUNO")?.ToString() ?? string.Empty))
+                    {
+                        all.Add(r);
+                        added++;
+                    }
+                }
+
+                if (added == 0)
+                    break;
+
+                start = all[^1].GetValueOrDefault("CUNO")?.ToString();
+
+                if (page == MaxPages - 1)
+                    _logger.LogWarning("Customer list reached the {MaxPages}-page limit — result may be truncated", MaxPages);
             }
 
             var records = all

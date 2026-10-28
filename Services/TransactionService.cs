@@ -151,14 +151,10 @@ namespace Movex.API.Services
                     {
                         var allRecords = new List<Dictionary<string, object?>>();
                         string currentRaw = safeRawResponse;
-                        // Hard cap on records per call. 500 silently truncated the full customer list (1,442 rows).
-                        int maxIterations = 5000;
+                        int maxIterations = 500;
 
                         for (int i = 0; i < maxIterations; i++)
                         {
-                            if (i == maxIterations - 1)
-                                _logger.LogWarning("List transaction '{Program}/{Transaction}' reached the {Max}-record cap — result may be truncated", program, transaction, maxIterations);
-
                             string trimmed = currentRaw.TrimStart();
 
                             // M3 list protocol termination signals:
