@@ -1,0 +1,67 @@
+{
+  "program": "CRS610MI",
+  "library": "MVXCOBJ",
+  "description": "Customer Open — list customers (number, name, status only; credit, bank and insurance fields are deliberately not mapped)",
+  "transactions": [
+    {
+      "name": "LstByNumber",
+      "description": "List customers in customer number order. CUNO is an optional start value. Output has no status filter — STAT is returned for the caller to filter on",
+      "httpMethod": "GET",
+      "returnsList": true,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 16,
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "CUNO",
+          "position": 2,
+          "length": 10,
+          "type": "text",
+          "startIndex": 19,
+          "required": false,
+          "description": "Customer number (optional start value)"
+        }
+      ],
+      "responseFields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 16,
+          "description": "Company"
+        },
+        {
+          "name": "CUNO",
+          "position": 2,
+          "length": 10,
+          "type": "text",
+          "startIndex": 24,
+          "description": "Customer number"
+        },
+        {
+          "name": "CUNM",
+          "position": 3,
+          "length": 36,
+          "type": "text",
+          "startIndex": 34,
+          "description": "Customer name"
+        },
+        {
+          "name": "STAT",
+          "position": 4,
+          "length": 2,
+          "type": "text",
+          "startIndex": 840,
+          "description": "Customer status"
+        }
+      ]
+    }
+  ]
+}
