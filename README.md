@@ -776,6 +776,14 @@ driver installed on the host. See [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) f
   { "data": { "records": [{ "CUNO": "AA", "NAME": "Example Customer" }], "count": 1 } }
   ```
 
+- `GET /api/customers/basic?cono=100&status=20,90`
+  Customer number, name and status from `CRS610MI/LstByNumber`. `status` is comma-separated
+  (default `20`, max 5 codes, e.g. `20`, `20,90`, `20,90,10`); the MI has no status input, so the
+  full list is read (M3 returns 100 records per call, so the API pages by customer number) and
+  filtered on `STAT` in the API. Invalid `status` returns 400.
+  Returns `statuses[]`, `data.records[]` (`CUNO`, `CUNM`, `STAT`) and `data.count`.
+  `CUNO` is returned trimmed but as stored (e.g. `0283`, not `283`).
+
 > **Note (2026-06-16):** these three routes were renamed from table-named paths
 > (`/api/mitpop/search`, `/api/mitmas/next-sequence`) to the resource-oriented names above,
 > for consistency with `/api/customers/list`.
