@@ -85,6 +85,16 @@ namespace Movex.API.Middleware
             if (!string.IsNullOrWhiteSpace(options.Wms) &&
                 string.Equals(providedKey, options.Wms, System.StringComparison.Ordinal))
             {
+                // The WMS allowlist is enforced only by WmsTransactionController, so the key
+                // must not reach any other route (e.g. the unrestricted /api transaction routes).
+                if (!context.Request.Path.StartsWithSegments("/wms"))
+                {
+                    _logger.LogWarning("WMS API key refused for {Path}", context.Request.Path);
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsync("The WMS API key is only valid on /wms routes");
+                    return;
+                }
+
                 context.Items[ApiKeyTierItem] = "Wms";
                 await _next(context);
                 return;

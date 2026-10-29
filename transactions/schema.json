@@ -82,6 +82,11 @@
         "description": {
           "type": "string",
           "description": "Human-readable field description"
+        },
+        "rightAlign": {
+          "type": "boolean",
+          "default": false,
+          "description": "Text fields only: pad with leading spaces instead of trailing ones (e.g. right-justified PO numbers)"
         }
       }
     },
