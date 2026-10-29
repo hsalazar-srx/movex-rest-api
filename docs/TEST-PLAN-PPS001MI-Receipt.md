@@ -79,7 +79,9 @@ Expected: `OK`, no data (Receipt has no output fields).
 
 **For MES:** read the receipt number from `MITTRA.MTREPN` for the PO + line after the call; the Receipt reply holds none.
 
-**Fix needed before use:** `PUNO` must be right-aligned to 7 characters. Until the definition supports that, callers must left-pad the PO number with spaces.
+**Fixed (f6176b4):** `PUNO` now has `"rightAlign": true`. Re-tested on line 2 with `PUNO` sent as plain `"D11345"`:
+OK, line 2 (N0084) 20 → 75, `MITTRA` type 25 at DEFAULT, `MTREPN` = **8536753001**, series 21/1 → 8536753.
+`MTRIDL` held **2000** for line 2 (1000 for line 1), so `MTRIDL` = PO line × 1000 (+ subline, presumably).
 
 ## 5. Record results
 
