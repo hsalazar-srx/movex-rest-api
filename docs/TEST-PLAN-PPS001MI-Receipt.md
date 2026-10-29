@@ -65,6 +65,22 @@ Expected: `OK`, no data (Receipt has no output fields).
 | Does a failure come back as a real error? | Send `PUNO` = `9999999`. Expect `NOK` with Movex's message, **not** `M3_NULL_RESPONSE` |
 | `WHLO` vs `WHSL` | Step 2 sends `WHLO` only. Then repeat with an explicit `WHSL` location |
 
+## Results — 2026-10-29 (local API, CONO 300, PO D11345 line 1)
+
+| Check | Result |
+|---|---|
+| Invalid PO (`9999999`) | `success: false`, `"Purchase order line 1 does not exist"`: a real Movex error, not `M3_NULL_RESPONSE` |
+| `PUNO` sent as `"D11345"` | **Rejected: "Purchase order line 1 does not exist".** PO numbers are stored **right-aligned** in `MPLINE.IBPUNO` (`[ D11345]`, `[    ECO]`), and the API pads text on the right |
+| `PUNO` sent as `" D11345"` | **OK.** Line 1: status 20 → **75** (goods receiving method 010 = direct put-away), `IBRVQA` 0 → 1 |
+| `MITTRA` | New row: type **25**, item N0238-016-998, warehouse D01, location **DEFAULT** (no `WHSL` sent), qty 1, `MTRIDL` = 1000 |
+| Receipt number | Series 21/1 moved 8536751 → **8536752**. `MITTRA.MTREPN` (Receiving number) = **8536752001**: the series number plus a 3-digit suffix |
+| `RESP` | The API's configured M3 user was accepted, and stored in `MTRESP` |
+| `PNLS` = `0`, `RVQA` = `"1"` (string) | Accepted |
+
+**For MES:** read the receipt number from `MITTRA.MTREPN` for the PO + line after the call; the Receipt reply holds none.
+
+**Fix needed before use:** `PUNO` must be right-aligned to 7 characters. Until the definition supports that, callers must left-pad the PO number with spaces.
+
 ## 5. Record results
 
 Update the vault note `m3-knowledge/transactions/pps001mi-po-receipt.md`: answers to step 4, the
