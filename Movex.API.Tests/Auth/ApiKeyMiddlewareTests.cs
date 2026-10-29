@@ -114,7 +114,7 @@ public class ApiKeyMiddlewareTests
     public async Task Wms_key_stamps_Wms_tier()
     {
         var middleware = BuildMiddleware(new ApiKeyOptions { Primary = "pk", Wms = "wk" });
-        var ctx = MakeContext(apiKey: "wk");
+        var ctx = MakeContext(apiKey: "wk", path: "/wms/PMS100MI/SelMaterials");
 
         await middleware.InvokeAsync(ctx);
 
@@ -125,11 +125,45 @@ public class ApiKeyMiddlewareTests
     public async Task Wms_key_does_not_match_Primary_tier()
     {
         var middleware = BuildMiddleware(new ApiKeyOptions { Primary = "pk", Wms = "wk" });
-        var ctx = MakeContext(apiKey: "wk");
+        var ctx = MakeContext(apiKey: "wk", path: "/wms/PMS100MI/SelMaterials");
 
         await middleware.InvokeAsync(ctx);
 
         ctx.Items[ApiKeyAuthenticationMiddleware.ApiKeyTierItem].Should().NotBe("Primary");
+    }
+
+    // The WMS allowlist lives in WmsTransactionController only, so the key must not reach /api.
+    [Theory]
+    [InlineData("/api/MMS200MI/GetItmBasic")]
+    [InlineData("/api/PPS001MI/Receipt")]
+    [InlineData("/api/programs")]
+    [InlineData("/wmsx/anything")]
+    public async Task Wms_key_returns_403_outside_wms_routes(string path)
+    {
+        var nextCalled = false;
+        var middleware = BuildMiddleware(
+            new ApiKeyOptions { Primary = "pk", Wms = "wk" },
+            next: _ => { nextCalled = true; return Task.CompletedTask; });
+        var ctx = MakeContext(apiKey: "wk", path: path);
+
+        await middleware.InvokeAsync(ctx);
+
+        ctx.Response.StatusCode.Should().Be(403);
+        nextCalled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Primary_key_still_reaches_api_routes()
+    {
+        var nextCalled = false;
+        var middleware = BuildMiddleware(
+            new ApiKeyOptions { Primary = "pk", Wms = "wk" },
+            next: _ => { nextCalled = true; return Task.CompletedTask; });
+        var ctx = MakeContext(apiKey: "pk", path: "/api/MMS200MI/GetItmBasic");
+
+        await middleware.InvokeAsync(ctx);
+
+        nextCalled.Should().BeTrue();
     }
 
     [Fact]
