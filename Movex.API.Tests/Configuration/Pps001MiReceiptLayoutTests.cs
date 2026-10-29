@@ -52,4 +52,20 @@ public class Pps001MiReceiptLayoutTests
         At(command, 100, 3).Should().Be("M10");
         At(command, 143, 5).Should().Be("00002");
     }
+
+    // Live-tested 2026-10-29: "D11345" left-aligned → "Purchase order line 1 does not exist"; " D11345" → OK.
+    [Theory]
+    [InlineData("D11345")]
+    [InlineData(" D11345")]
+    [InlineData("D11345 ")]
+    public void Receipt_PUNO_is_right_aligned_however_the_caller_sends_it(string puno)
+    {
+        var command = BuildReceipt(new()
+        {
+            ["CONO"] = "300", ["TRDT"] = "20261029", ["RESP"] = "HSALAZAR",
+            ["PUNO"] = puno, ["PNLI"] = "1", ["PNLS"] = "0", ["RVQA"] = "1"
+        });
+
+        At(command, 39, 7).Should().Be(" D11345");
+    }
 }

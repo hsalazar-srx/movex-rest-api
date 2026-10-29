@@ -43,7 +43,8 @@
           "type": "text",
           "startIndex": 39,
           "required": true,
-          "description": "Purchase Order Number"
+          "rightAlign": true,
+          "description": "Purchase Order Number (right-aligned: Movex stores PO numbers right-justified, e.g. ' D11345')"
         },
         {
           "name": "PNLI",

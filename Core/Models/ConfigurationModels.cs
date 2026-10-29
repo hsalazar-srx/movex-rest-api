@@ -23,6 +23,12 @@ namespace Movex.API.Core.Models
         /// If omitted, fields are built sequentially in Position order (legacy mode).
         /// </summary>
         public int? StartIndex { get; set; }
+        /// <summary>
+        /// Text fields only: right-align the value with leading spaces instead of trailing ones.
+        /// Movex stores some keys right-justified (e.g. PO numbers in MPLINE.IBPUNO: " D11345"),
+        /// and an MI lookup on a left-aligned value finds nothing.
+        /// </summary>
+        public bool RightAlign { get; set; }
     }
 
     /// <summary>
