@@ -190,6 +190,11 @@ namespace Movex.API.Infrastructure.TransactionBuilding
             {
                 return value.PadLeft(field.Length, '0');
             }
+            // Right-aligned text fields: leading spaces (callers may send the value with or without them)
+            else if (field.RightAlign)
+            {
+                return value.Trim().PadLeft(field.Length, ' ');
+            }
             // Text fields: left-align with trailing spaces
             else
             {

@@ -1,0 +1,152 @@
+{
+  "program": "PPS001MI",
+  "library": "MVXCOBJ",
+  "description": "Purchase Order - goods receipt (Receipt transaction only)",
+  "transactions": [
+    {
+      "name": "Receipt",
+      "description": "Book a purchase order goods receipt (PPS300 equivalent). The line goes to inspection or direct put-away according to the PO line's goods receiving method (MPLINE.IBGRMT), not any field here. Returns no output fields.",
+      "httpMethod": "POST",
+      "returnsList": false,
+      "fields": [
+        {
+          "name": "CONO",
+          "position": 1,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 16,
+          "required": true,
+          "description": "Company Number"
+        },
+        {
+          "name": "TRDT",
+          "position": 2,
+          "length": 8,
+          "type": "numeric",
+          "startIndex": 19,
+          "required": true,
+          "description": "Transaction Date (YYYYMMDD)"
+        },
+        {
+          "name": "RESP",
+          "position": 3,
+          "length": 12,
+          "type": "text",
+          "startIndex": 27,
+          "required": true,
+          "description": "Responsible (expected value unconfirmed - likely a Movex user ID)"
+        },
+        {
+          "name": "PUNO",
+          "position": 4,
+          "length": 7,
+          "type": "text",
+          "startIndex": 39,
+          "required": true,
+          "rightAlign": true,
+          "description": "Purchase Order Number (right-aligned: Movex stores PO numbers right-justified, e.g. ' D11345')"
+        },
+        {
+          "name": "PNLI",
+          "position": 5,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 46,
+          "required": true,
+          "description": "Purchase Order Line"
+        },
+        {
+          "name": "PNLS",
+          "position": 6,
+          "length": 3,
+          "type": "numeric",
+          "startIndex": 49,
+          "required": true,
+          "description": "Purchase Order Line Subnumber (normally 0)"
+        },
+        {
+          "name": "RVQA",
+          "position": 7,
+          "length": 11,
+          "type": "text",
+          "startIndex": 52,
+          "required": true,
+          "description": "Received Quantity (alpha in the MI layout - sent left-aligned as text)"
+        },
+        {
+          "name": "OEND",
+          "position": 8,
+          "length": 1,
+          "type": "numeric",
+          "startIndex": 63,
+          "required": false,
+          "description": "Flagged as completed: 1 closes the line short with no back-order. Send 0 for normal receipts"
+        },
+        {
+          "name": "WHSL",
+          "position": 9,
+          "length": 10,
+          "type": "text",
+          "startIndex": 64,
+          "required": false,
+          "description": "Location"
+        },
+        {
+          "name": "BANO",
+          "position": 10,
+          "length": 12,
+          "type": "text",
+          "startIndex": 74,
+          "required": false,
+          "description": "Lot Number"
+        },
+        {
+          "name": "CAMU",
+          "position": 11,
+          "length": 14,
+          "type": "text",
+          "startIndex": 86,
+          "required": false,
+          "description": "Container"
+        },
+        {
+          "name": "WHLO",
+          "position": 12,
+          "length": 3,
+          "type": "text",
+          "startIndex": 100,
+          "required": false,
+          "description": "Warehouse"
+        },
+        {
+          "name": "BREM",
+          "position": 13,
+          "length": 20,
+          "type": "text",
+          "startIndex": 103,
+          "required": false,
+          "description": "Remark"
+        },
+        {
+          "name": "SUDO",
+          "position": 14,
+          "length": 20,
+          "type": "text",
+          "startIndex": 123,
+          "required": false,
+          "description": "Delivery Note Number"
+        },
+        {
+          "name": "NOPK",
+          "position": 15,
+          "length": 5,
+          "type": "numeric",
+          "startIndex": 143,
+          "required": false,
+          "description": "Number of Packages"
+        }
+      ],
+      "responseFields": []
+    }
+  ]
+}
