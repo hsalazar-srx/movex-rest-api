@@ -10,6 +10,7 @@
 // GET /api/bom/where-used/{mtno} — where-used (B-3), reverse MPDMAT lookup
 // GET /api/bom/{prno}/circuit-refs — circuit references (C-1), queries ZECNCIRF (Stargile)
 // GET /api/mpm/export          — paged ZECNMPMS export (M-1), Stargile manufacturer part master
+// GET /api/purchase-orders/{puno}/stock-transactions — receipts/reversals for a PO (P-1), queries MITTRA
 //
 // Renamed 2026-06-16 from table-named routes (mitpop/search, mitmas/next-sequence) to
 // resource-oriented names, consistent with the new customers/list endpoint.
@@ -22,6 +23,7 @@
 using System.Data.Odbc;
 using Microsoft.AspNetCore.Mvc;
 using Movex.API.Services;
+using Movex.API.Services.Validation;
 
 namespace Movex.API.Controllers;
 
@@ -569,6 +571,66 @@ public class Db2QueryController : ControllerBase
             { return Db2Error(_logger, ex, $"ZECNMPMS export cono={conoResolved}"); }
     }
 
+    // ── P-1: stock transactions for a purchase order ──────────────────────────
+
+    /// <summary>
+    /// Stock transactions (MITTRA) booked against a purchase order: goods receipts and their
+    /// reversals. Read-only. Optional filters: one item, and a transaction-date range.
+    ///
+    /// Type 25 is a PO receipt. A reversed receipt keeps its original row and adds a row with a
+    /// negative quantity; the receiving number (REPN) moves to the reversal row.
+    /// </summary>
+    /// <param name="puno">PO number, 1-7 letters or digits (padding is handled).</param>
+    /// <param name="cono">Company 100 or 300 (default: M3:DEFAULT_COMPANY from config).</param>
+    /// <param name="itno">Optional item number, exact match.</param>
+    /// <param name="fromDate">Optional first transaction date, YYYYMMDD (query name "from").</param>
+    /// <param name="toDate">Optional last transaction date, YYYYMMDD (query name "to").</param>
+    /// <param name="limit">Max rows (1-500, default 100).</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    [HttpGet("api/purchase-orders/{puno}/stock-transactions")]
+    [ProducesResponseType(typeof(PoStockTransactionsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> GetPoStockTransactions(
+        string puno,
+        [FromQuery] string? cono,
+        [FromQuery] string? itno,
+        [FromQuery(Name = "from")] string? fromDate,
+        [FromQuery(Name = "to")] string? toDate,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken = default)
+    {
+        var (query, error) = PoStockTransactionRules.Validate(
+            cono, _defaultCono, puno, itno, fromDate, toDate, limit);
+        if (query is null)
+            return BadRequest(new { success = false, error });
+
+        try
+        {
+            var rows = await _db2.GetPoStockTransactionsAsync(query, cancellationToken);
+
+            var truncated = rows.Count > query.Limit;
+            var page = truncated ? rows.Take(query.Limit).ToList() : rows.ToList();
+
+            return Ok(new PoStockTransactionsResponse
+            {
+                Success = true,
+                Cono    = query.Cono,
+                Puno    = query.Puno.Trim(),
+                Data    = new PoStockTransactionsData
+                {
+                    Records   = page,
+                    Count     = page.Count,
+                    Truncated = truncated,
+                }
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
+            { return NotConfigured(_logger, ex); }
+        catch (OdbcException ex)
+            { return Db2Error(_logger, ex, $"MITTRA PO transactions cono={query.Cono} puno={query.Puno.Trim()}"); }
+    }
+
     // ── C-2: ZECNCIRF export ──────────────────────────────────────────────────
 
     /// <summary>
@@ -619,6 +681,23 @@ public class Db2QueryController : ControllerBase
 }
 
 // ── Response models ───────────────────────────────────────────────────────────
+
+public sealed class PoStockTransactionsResponse
+{
+    public bool   Success { get; init; }
+    public string Cono    { get; init; } = string.Empty;
+    public string Puno    { get; init; } = string.Empty;
+    public PoStockTransactionsData Data { get; init; } = new();
+}
+
+public sealed class PoStockTransactionsData
+{
+    public IReadOnlyList<PoStockTransactionRecord> Records { get; init; } = [];
+    public int Count { get; init; }
+
+    /// <summary>True when more rows matched than the limit allowed: narrow the filters.</summary>
+    public bool Truncated { get; init; }
+}
 
 public sealed class ItemSearchResponse
 {
