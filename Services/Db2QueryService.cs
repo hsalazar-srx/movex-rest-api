@@ -620,34 +620,35 @@ FETCH FIRST {limit + 1} ROWS ONLY";
         }
     }
 
-    // ── MITTRA stock transactions for a purchase order ────────────────────────
+    // ── MITTRA stock transactions for an item ─────────────────────────────────
 
     /// <summary>
-    /// Stock transactions (receipts, reversals) booked against a purchase order, optionally for
-    /// one item and a transaction-date range. Read-only; every filter is a bound parameter.
+    /// Stock transactions (all movement types) for one item from a transaction date, newest first,
+    /// optionally narrowed by end date, order number and transaction type. Read-only; every filter
+    /// is a bound parameter.
     ///
-    /// MITTRA.MTRIDN holds the PO number right-justified in 7 characters and MTRIDL the PO line
-    /// x 1000 (verified in the PPS001MI receipt tests, 2026-10-29). The caller passes the padded
-    /// PO, so the predicate is an exact comparison that can use the index, not TRIM(MTRIDN).
+    /// MITTRA.MTRIDN holds the order number; for a PO it is right-justified in 7 characters and
+    /// MTRIDL is the PO line x 1000 (verified in the PPS001MI receipt tests, 2026-10-29). The caller
+    /// passes the padded PO, so the predicate is an exact comparison, not TRIM(MTRIDN).
     ///
     /// Id and date columns are cast to text because their DB2 types are not recorded in the
     /// vault; quantities are decimal. The accounting price (MTTRPR) is deliberately not selected.
     /// Fetches limit+1 rows so the caller can report truncation without a COUNT(*).
     /// </summary>
-    public async Task<IReadOnlyList<PoStockTransactionRecord>> GetPoStockTransactionsAsync(
-        PoStockTransactionQuery query,
+    public async Task<IReadOnlyList<ItemStockTransactionRecord>> GetItemStockTransactionsAsync(
+        ItemStockTransactionQuery query,
         CancellationToken cancellationToken = default)
     {
         var schema = ResolveSchema(query.Cono);
 
-        var where = new StringBuilder("MTCONO = ? AND MTRIDN = ?");
-        var values = new List<object> { query.Cono, query.Puno };
-        if (query.Itno is not null) { where.Append(" AND MTITNO = ?");  values.Add(query.Itno); }
-        if (query.FromDate.HasValue) { where.Append(" AND MTTRDT >= ?"); values.Add(query.FromDate.Value); }
-        if (query.ToDate.HasValue)   { where.Append(" AND MTTRDT <= ?"); values.Add(query.ToDate.Value); }
+        var where = new StringBuilder("MTCONO = ? AND MTITNO = ? AND MTTRDT >= ?");
+        var values = new List<object> { query.Cono, query.Itno, query.FromDate };
+        if (query.ToDate.HasValue) { where.Append(" AND MTTRDT <= ?"); values.Add(query.ToDate.Value); }
+        if (query.Puno is not null) { where.Append(" AND MTRIDN = ?"); values.Add(query.Puno); }
+        if (query.Ttyp.HasValue)    { where.Append(" AND MTTTYP = ?"); values.Add((decimal)query.Ttyp.Value); }
 
         var sql = $@"SELECT TRIM(CAST(MTITNO AS VARCHAR(20))) AS ITNO,
-       TRIM(CAST(MTRIDN AS VARCHAR(20))) AS PUNO,
+       TRIM(CAST(MTRIDN AS VARCHAR(20))) AS RIDN,
        TRIM(CAST(MTRIDL AS VARCHAR(20))) AS RIDL,
        TRIM(CAST(MTTRDT AS VARCHAR(20))) AS TRDT,
        TRIM(CAST(MTRGDT AS VARCHAR(20))) AS RGDT,
@@ -664,12 +665,12 @@ FETCH FIRST {limit + 1} ROWS ONLY";
        TRIM(CAST(MTRESP AS VARCHAR(20))) AS RESP
 FROM {schema}.MITTRA
 WHERE {where}
-ORDER BY MTRGDT, MTRGTM, MTRIDL
+ORDER BY MTTRDT DESC, MTRGDT DESC, MTRGTM DESC, MTTMSX DESC
 FETCH FIRST {query.Limit + 1} ROWS ONLY";
 
         _logger.LogInformation(
-            "PO stock transactions: cono={Cono} puno={Puno} itno={Itno} from={From} to={To} limit={Limit}",
-            query.Cono, query.Puno.Trim(), query.Itno, query.FromDate, query.ToDate, query.Limit);
+            "Item stock transactions: cono={Cono} itno={Itno} from={From} to={To} puno={Puno} ttyp={Ttyp} limit={Limit}",
+            query.Cono, query.Itno, query.FromDate, query.ToDate, query.Puno?.Trim(), query.Ttyp, query.Limit);
 
         try
         {
@@ -680,13 +681,13 @@ FETCH FIRST {query.Limit + 1} ROWS ONLY";
                 commandTimeout: _settings.CommandTimeoutSeconds,
                 cancellationToken: cancellationToken);
 
-            var results = await conn.QueryAsync<PoStockTransactionRecord>(cmd);
+            var results = await conn.QueryAsync<ItemStockTransactionRecord>(cmd);
             return results.ToList();
         }
         catch (OdbcException ex)
         {
-            _logger.LogError(ex, "DB2 error in MITTRA PO transactions: cono={Cono} puno={Puno}",
-                query.Cono, query.Puno.Trim());
+            _logger.LogError(ex, "DB2 error in MITTRA item transactions: cono={Cono} itno={Itno}",
+                query.Cono, query.Itno);
             throw;
         }
     }
@@ -795,11 +796,11 @@ FETCH FIRST {query.Limit + 1} ROWS ONLY";
     }
 }
 
-/// <summary>One MITTRA row for a purchase order (see GetPoStockTransactionsAsync).</summary>
-public sealed record PoStockTransactionRecord(
+/// <summary>One MITTRA row for an item (see GetItemStockTransactionsAsync).</summary>
+public sealed record ItemStockTransactionRecord(
     string ITNO,
-    string PUNO,
-    string RIDL,    // PO line x 1000
+    string? RIDN,   // order number; its meaning depends on TTYP (PO number on a PO receipt)
+    string? RIDL,   // order line (PO line x 1000 on a PO receipt)
     string TRDT,    // transaction date YYYYMMDD
     string RGDT,    // entry date
     string RGTM,    // entry time
@@ -810,7 +811,7 @@ public sealed record PoStockTransactionRecord(
     decimal TRQT,   // negative on a reversal
     decimal NSTQ,
     string? REPN,   // receiving number; moves to the reversal row when a receipt is reversed
-    string? ANBR,   // accounting number; 0 until the overnight accounting run
+    string? ANBR,   // accounting number; 0 until internal accounting has run
     string? RSCD,
     string? RESP);
 

@@ -771,26 +771,17 @@
         }
       }
     },
-    "/api/purchase-orders/{puno}/stock-transactions": {
+    "/api/stock-transactions": {
       "get": {
         "tags": [
           "Db2Query"
         ],
-        "summary": "Stock transactions (MITTRA) booked against a purchase order: goods receipts and their\r\nreversals. Read-only. Optional filters: one item, and a transaction-date range.\r\n            \r\nType 25 is a PO receipt. A reversed receipt keeps its original row and adds a row with a\r\nnegative quantity; the receiving number (REPN) moves to the reversal row.",
+        "summary": "Stock transactions (MITTRA) for one item: every movement type, newest first, from a\r\ntransaction date. Read-only. Optional filters: end date, order number (PO) and type.\r\n            \r\nType 25 is a PO receipt. A reversed receipt keeps its original row and adds a row with a\r\nnegative quantity; the receiving number (REPN) moves to the reversal row.",
         "parameters": [
-          {
-            "name": "puno",
-            "in": "path",
-            "description": "PO number, 1-7 letters or digits (padding is handled).",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "cono",
             "in": "query",
-            "description": "Company 100 or 300 (default: M3:DEFAULT_COMPANY from config).",
+            "description": "Company, 100 or 300. Required.",
             "schema": {
               "type": "string"
             }
@@ -798,7 +789,7 @@
           {
             "name": "itno",
             "in": "query",
-            "description": "Optional item number, exact match.",
+            "description": "Item number, exact match. Required.",
             "schema": {
               "type": "string"
             }
@@ -806,7 +797,7 @@
           {
             "name": "from",
             "in": "query",
-            "description": "Optional first transaction date, YYYYMMDD (query name \"from\").",
+            "description": "First transaction date, YYYYMMDD (query name \"from\"). Required.",
             "schema": {
               "type": "string"
             }
@@ -817,6 +808,23 @@
             "description": "Optional last transaction date, YYYYMMDD (query name \"to\").",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "puno",
+            "in": "query",
+            "description": "Optional PO number, 1-7 letters or digits (padding is handled).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ttyp",
+            "in": "query",
+            "description": "Optional stock transaction type, 1-99. Omit for all movements.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -835,17 +843,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/PoStockTransactionsResponse"
+                  "$ref": "#/components/schemas/ItemStockTransactionsResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PoStockTransactionsResponse"
+                  "$ref": "#/components/schemas/ItemStockTransactionsResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PoStockTransactionsResponse"
+                  "$ref": "#/components/schemas/ItemStockTransactionsResponse"
                 }
               }
             }
@@ -1838,6 +1846,118 @@
         },
         "additionalProperties": false
       },
+      "ItemStockTransactionRecord": {
+        "type": "object",
+        "properties": {
+          "itno": {
+            "type": "string",
+            "nullable": true
+          },
+          "ridn": {
+            "type": "string",
+            "nullable": true
+          },
+          "ridl": {
+            "type": "string",
+            "nullable": true
+          },
+          "trdt": {
+            "type": "string",
+            "nullable": true
+          },
+          "rgdt": {
+            "type": "string",
+            "nullable": true
+          },
+          "rgtm": {
+            "type": "string",
+            "nullable": true
+          },
+          "ttyp": {
+            "type": "string",
+            "nullable": true
+          },
+          "whlo": {
+            "type": "string",
+            "nullable": true
+          },
+          "whsl": {
+            "type": "string",
+            "nullable": true
+          },
+          "bano": {
+            "type": "string",
+            "nullable": true
+          },
+          "trqt": {
+            "type": "number",
+            "format": "double"
+          },
+          "nstq": {
+            "type": "number",
+            "format": "double"
+          },
+          "repn": {
+            "type": "string",
+            "nullable": true
+          },
+          "anbr": {
+            "type": "string",
+            "nullable": true
+          },
+          "rscd": {
+            "type": "string",
+            "nullable": true
+          },
+          "resp": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One MITTRA row for an item (see GetItemStockTransactionsAsync)."
+      },
+      "ItemStockTransactionsData": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemStockTransactionRecord"
+            },
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "True when more rows matched than the limit allowed: narrow the filters."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ItemStockTransactionsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "cono": {
+            "type": "string",
+            "nullable": true
+          },
+          "itno": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/ItemStockTransactionsData"
+          }
+        },
+        "additionalProperties": false
+      },
       "MitpopRecordDto": {
         "type": "object",
         "properties": {
@@ -1927,118 +2047,6 @@
           },
           "data": {
             "$ref": "#/components/schemas/NextSequenceData"
-          }
-        },
-        "additionalProperties": false
-      },
-      "PoStockTransactionRecord": {
-        "type": "object",
-        "properties": {
-          "itno": {
-            "type": "string",
-            "nullable": true
-          },
-          "puno": {
-            "type": "string",
-            "nullable": true
-          },
-          "ridl": {
-            "type": "string",
-            "nullable": true
-          },
-          "trdt": {
-            "type": "string",
-            "nullable": true
-          },
-          "rgdt": {
-            "type": "string",
-            "nullable": true
-          },
-          "rgtm": {
-            "type": "string",
-            "nullable": true
-          },
-          "ttyp": {
-            "type": "string",
-            "nullable": true
-          },
-          "whlo": {
-            "type": "string",
-            "nullable": true
-          },
-          "whsl": {
-            "type": "string",
-            "nullable": true
-          },
-          "bano": {
-            "type": "string",
-            "nullable": true
-          },
-          "trqt": {
-            "type": "number",
-            "format": "double"
-          },
-          "nstq": {
-            "type": "number",
-            "format": "double"
-          },
-          "repn": {
-            "type": "string",
-            "nullable": true
-          },
-          "anbr": {
-            "type": "string",
-            "nullable": true
-          },
-          "rscd": {
-            "type": "string",
-            "nullable": true
-          },
-          "resp": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false,
-        "description": "One MITTRA row for a purchase order (see GetPoStockTransactionsAsync)."
-      },
-      "PoStockTransactionsData": {
-        "type": "object",
-        "properties": {
-          "records": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PoStockTransactionRecord"
-            },
-            "nullable": true
-          },
-          "count": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "truncated": {
-            "type": "boolean",
-            "description": "True when more rows matched than the limit allowed: narrow the filters."
-          }
-        },
-        "additionalProperties": false
-      },
-      "PoStockTransactionsResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "cono": {
-            "type": "string",
-            "nullable": true
-          },
-          "puno": {
-            "type": "string",
-            "nullable": true
-          },
-          "data": {
-            "$ref": "#/components/schemas/PoStockTransactionsData"
           }
         },
         "additionalProperties": false
