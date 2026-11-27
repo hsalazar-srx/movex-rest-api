@@ -1,5 +1,5 @@
-// Services/Validation/PoStockTransactionRules.cs
-// Input rules for GET /api/purchase-orders/{puno}/stock-transactions.
+// Services/Validation/ItemStockTransactionRules.cs
+// Input rules for GET /api/stock-transactions.
 //
 // Every value that reaches the DB2 query is checked here first and then bound as a ? parameter
 // (never concatenated). The only text placed into the SQL itself is the schema name (from config)
@@ -9,15 +9,16 @@ using System.Text.RegularExpressions;
 
 namespace Movex.API.Services.Validation;
 
-public sealed record PoStockTransactionQuery(
+public sealed record ItemStockTransactionQuery(
     string Cono,
-    string Puno,      // upper-case, right-justified to 7 characters, as MITTRA.MTRIDN stores it
-    string? Itno,
-    decimal? FromDate, // YYYYMMDD, compared with MITTRA.MTTRDT
+    string Itno,
+    decimal FromDate, // YYYYMMDD, compared with MITTRA.MTTRDT
     decimal? ToDate,
+    string? Puno,     // upper-case, right-justified to 7 characters, as MITTRA.MTRIDN stores it
+    int? Ttyp,        // stock transaction type; null = all movements
     int Limit);
 
-public static class PoStockTransactionRules
+public static class ItemStockTransactionRules
 {
     public const int DefaultLimit = 100;
     public const int MaxLimit = 500;
@@ -27,40 +28,46 @@ public static class PoStockTransactionRules
     private static readonly Regex ItnoPattern = new(@"^[A-Za-z0-9._\-/]{1,15}$", RegexOptions.Compiled);
 
     /// <summary>Returns the query to run, or an error message for a 400 response.</summary>
-    public static (PoStockTransactionQuery? Query, string? Error) Validate(
-        string? cono, string? defaultCono, string? puno, string? itno,
-        string? fromDate, string? toDate, int? limit)
+    public static (ItemStockTransactionQuery? Query, string? Error) Validate(
+        string? cono, string? itno, string? fromDate, string? toDate,
+        string? puno, int? ttyp, int? limit)
     {
-        var conoResolved = string.IsNullOrWhiteSpace(cono) ? defaultCono?.Trim() : cono.Trim();
-        // Db2QueryService.ResolveSchema falls back to company 300 for any other value, which would
-        // silently answer from the wrong company. Refuse instead.
+        // No default company: Db2QueryService.ResolveSchema falls back to company 300 for any
+        // unknown value, which would silently answer from the wrong company.
+        var conoResolved = cono?.Trim();
         if (conoResolved is not ("100" or "300"))
-            return (null, "cono must be 100 or 300");
+            return (null, "cono is required and must be 100 or 300");
 
-        if (string.IsNullOrWhiteSpace(puno) || !PunoPattern.IsMatch(puno.Trim()))
-            return (null, "puno is required: 1-7 letters or digits");
+        if (string.IsNullOrWhiteSpace(itno) || !ItnoPattern.IsMatch(itno.Trim()))
+            return (null, "itno is required: 1-15 characters: letters, digits, . _ - /");
 
-        string? itnoResolved = null;
-        if (!string.IsNullOrWhiteSpace(itno))
-        {
-            if (!ItnoPattern.IsMatch(itno.Trim()))
-                return (null, "itno must be 1-15 characters: letters, digits, . _ - /");
-            itnoResolved = itno.Trim().ToUpperInvariant();
-        }
-
+        // A start date is required so a busy item cannot pull its whole history.
+        if (string.IsNullOrWhiteSpace(fromDate))
+            return (null, "from is required, in YYYYMMDD form, e.g. 20261101");
         if (!TryDate(fromDate, out var from, out var fromError)) return (null, fromError);
         if (!TryDate(toDate, out var to, out var toError)) return (null, toError);
-        if (from.HasValue && to.HasValue && from > to)
+        if (to.HasValue && from > to)
             return (null, "from must not be after to");
+
+        string? punoResolved = null;
+        if (!string.IsNullOrWhiteSpace(puno))
+        {
+            if (!PunoPattern.IsMatch(puno.Trim()))
+                return (null, "puno must be 1-7 letters or digits");
+            punoResolved = puno.Trim().ToUpperInvariant().PadLeft(7);
+        }
+
+        if (ttyp is < 1 or > 99)
+            return (null, "ttyp must be between 1 and 99");
 
         var limitResolved = limit ?? DefaultLimit;
         if (limitResolved < 1 || limitResolved > MaxLimit)
             return (null, $"limit must be between 1 and {MaxLimit}");
 
-        return (new PoStockTransactionQuery(
+        return (new ItemStockTransactionQuery(
             conoResolved,
-            puno.Trim().ToUpperInvariant().PadLeft(7),
-            itnoResolved, from, to, limitResolved), null);
+            itno.Trim().ToUpperInvariant(),
+            from!.Value, to, punoResolved, ttyp, limitResolved), null);
     }
 
     private static bool TryDate(string? value, out decimal? date, out string? error)

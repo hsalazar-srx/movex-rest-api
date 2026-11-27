@@ -10,7 +10,7 @@
 // GET /api/bom/where-used/{mtno} — where-used (B-3), reverse MPDMAT lookup
 // GET /api/bom/{prno}/circuit-refs — circuit references (C-1), queries ZECNCIRF (Stargile)
 // GET /api/mpm/export          — paged ZECNMPMS export (M-1), Stargile manufacturer part master
-// GET /api/purchase-orders/{puno}/stock-transactions — receipts/reversals for a PO (P-1), queries MITTRA
+// GET /api/stock-transactions  — stock movements for an item (P-1), queries MITTRA
 //
 // Renamed 2026-06-16 from table-named routes (mitpop/search, mitmas/next-sequence) to
 // resource-oriented names, consistent with the new customers/list endpoint.
@@ -574,50 +574,52 @@ public class Db2QueryController : ControllerBase
     // ── P-1: stock transactions for a purchase order ──────────────────────────
 
     /// <summary>
-    /// Stock transactions (MITTRA) booked against a purchase order: goods receipts and their
-    /// reversals. Read-only. Optional filters: one item, and a transaction-date range.
+    /// Stock transactions (MITTRA) for one item: every movement type, newest first, from a
+    /// transaction date. Read-only. Optional filters: end date, order number (PO) and type.
     ///
     /// Type 25 is a PO receipt. A reversed receipt keeps its original row and adds a row with a
     /// negative quantity; the receiving number (REPN) moves to the reversal row.
     /// </summary>
-    /// <param name="puno">PO number, 1-7 letters or digits (padding is handled).</param>
-    /// <param name="cono">Company 100 or 300 (default: M3:DEFAULT_COMPANY from config).</param>
-    /// <param name="itno">Optional item number, exact match.</param>
-    /// <param name="fromDate">Optional first transaction date, YYYYMMDD (query name "from").</param>
+    /// <param name="cono">Company, 100 or 300. Required.</param>
+    /// <param name="itno">Item number, exact match. Required.</param>
+    /// <param name="fromDate">First transaction date, YYYYMMDD (query name "from"). Required.</param>
     /// <param name="toDate">Optional last transaction date, YYYYMMDD (query name "to").</param>
+    /// <param name="puno">Optional PO number, 1-7 letters or digits (padding is handled).</param>
+    /// <param name="ttyp">Optional stock transaction type, 1-99. Omit for all movements.</param>
     /// <param name="limit">Max rows (1-500, default 100).</param>
     /// <param name="cancellationToken">Request cancellation token.</param>
-    [HttpGet("api/purchase-orders/{puno}/stock-transactions")]
-    [ProducesResponseType(typeof(PoStockTransactionsResponse), StatusCodes.Status200OK)]
+    [HttpGet("api/stock-transactions")]
+    [ProducesResponseType(typeof(ItemStockTransactionsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
-    public async Task<IActionResult> GetPoStockTransactions(
-        string puno,
+    public async Task<IActionResult> GetItemStockTransactions(
         [FromQuery] string? cono,
         [FromQuery] string? itno,
         [FromQuery(Name = "from")] string? fromDate,
         [FromQuery(Name = "to")] string? toDate,
+        [FromQuery] string? puno,
+        [FromQuery] int? ttyp,
         [FromQuery] int? limit,
         CancellationToken cancellationToken = default)
     {
-        var (query, error) = PoStockTransactionRules.Validate(
-            cono, _defaultCono, puno, itno, fromDate, toDate, limit);
+        var (query, error) = ItemStockTransactionRules.Validate(
+            cono, itno, fromDate, toDate, puno, ttyp, limit);
         if (query is null)
             return BadRequest(new { success = false, error });
 
         try
         {
-            var rows = await _db2.GetPoStockTransactionsAsync(query, cancellationToken);
+            var rows = await _db2.GetItemStockTransactionsAsync(query, cancellationToken);
 
             var truncated = rows.Count > query.Limit;
             var page = truncated ? rows.Take(query.Limit).ToList() : rows.ToList();
 
-            return Ok(new PoStockTransactionsResponse
+            return Ok(new ItemStockTransactionsResponse
             {
                 Success = true,
                 Cono    = query.Cono,
-                Puno    = query.Puno.Trim(),
-                Data    = new PoStockTransactionsData
+                Itno    = query.Itno,
+                Data    = new ItemStockTransactionsData
                 {
                     Records   = page,
                     Count     = page.Count,
@@ -628,7 +630,7 @@ public class Db2QueryController : ControllerBase
         catch (InvalidOperationException ex) when (ex.Message.Contains("ConnectionString"))
             { return NotConfigured(_logger, ex); }
         catch (OdbcException ex)
-            { return Db2Error(_logger, ex, $"MITTRA PO transactions cono={query.Cono} puno={query.Puno.Trim()}"); }
+            { return Db2Error(_logger, ex, $"MITTRA item transactions cono={query.Cono} itno={query.Itno}"); }
     }
 
     // ── C-2: ZECNCIRF export ──────────────────────────────────────────────────
@@ -682,17 +684,17 @@ public class Db2QueryController : ControllerBase
 
 // ── Response models ───────────────────────────────────────────────────────────
 
-public sealed class PoStockTransactionsResponse
+public sealed class ItemStockTransactionsResponse
 {
     public bool   Success { get; init; }
     public string Cono    { get; init; } = string.Empty;
-    public string Puno    { get; init; } = string.Empty;
-    public PoStockTransactionsData Data { get; init; } = new();
+    public string Itno    { get; init; } = string.Empty;
+    public ItemStockTransactionsData Data { get; init; } = new();
 }
 
-public sealed class PoStockTransactionsData
+public sealed class ItemStockTransactionsData
 {
-    public IReadOnlyList<PoStockTransactionRecord> Records { get; init; } = [];
+    public IReadOnlyList<ItemStockTransactionRecord> Records { get; init; } = [];
     public int Count { get; init; }
 
     /// <summary>True when more rows matched than the limit allowed: narrow the filters.</summary>
